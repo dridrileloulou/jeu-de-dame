@@ -1,0 +1,10 @@
+.boxCanva {
+    display: flex;
+    border: 1px;
+    justify-content: center;
+}
+
+body {
+    justify-content: center;
+}
+
