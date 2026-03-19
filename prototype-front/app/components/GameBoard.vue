@@ -7,7 +7,8 @@
         class="cell"
         :class="{
           dark: (row + col) % 2 === 0,
-          light: (row + col) % 2 !== 0
+          light: (row + col) % 2 !== 0,
+          shadowed: row === 4 && col === 4
         }"
       >
         <!-- Pions noirs (lignes 1-4) -->
@@ -54,6 +55,23 @@ const selected = ref(null)
 
 .dark  { background-color: #8B4513; }
 .light { background-color: #F5DEB3; }
+
+.shadowed {
+  position: relative;
+}
+
+.shadowed::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background-color: rgba(2, 2, 2, 0.5);
+  z-index: 1;
+}
 
 .piece {
   width: 75px; 

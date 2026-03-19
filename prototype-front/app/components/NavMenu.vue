@@ -8,6 +8,7 @@
     <div class="menu" :class="{ visible: open }">
       <NuxtLink to="/" @click="open = false">Accueil</NuxtLink>
       <NuxtLink to="/jeu" @click="open = false">Jouer</NuxtLink>
+      <NuxtLink to="/regles" @click="open = false">Règles</NuxtLink>
     </div>
   </div>
 </template>
