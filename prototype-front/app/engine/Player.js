@@ -1,11 +1,11 @@
 //   classe abstraite (non utilisée directement) 
 
-class Player {
+export class Player {
     constructor(id, color){
         this.id = id //1 ou 2
         this.color = color// blanc/noire
     }
-// methodes
+    // methodes
 
     getId() {
         return this.id
@@ -14,13 +14,14 @@ class Player {
     getColor() {
         return this.color
     }
-//oblige tt sous classe a l'implémenter
+    //oblige tt sous classe a l'implémenter
 
     playMove() {
         throw new Error("playMove besoin d'etre implementé")
     }
 
 } 
+
 
 
 
