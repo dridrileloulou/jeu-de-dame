@@ -1,6 +1,6 @@
-const Player = require("./Player")
+import { Player } from "./Player.js";
 
-class HumanPlayer extends Player {
+export class HumanPlayer extends Player {
   constructor(id, color, name) {
     super(id, color)
     this.name = name
@@ -11,9 +11,3 @@ class HumanPlayer extends Player {
   }
 }
  
-
-
-
-
-
-module.exports = HumanPlayer
