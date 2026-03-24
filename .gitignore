@@ -1,0 +1,19 @@
+# Dépendances
+node_modules/
+nuxt-app/node_modules/
+server/node_modules/
+
+# Variables d'environnement (clés API etc.)
+.env
+.env.local
+.env.*
+server/.env
+
+# Build Nuxt
+nuxt-app/.nuxt/
+nuxt-app/.output/
+nuxt-app/dist/
+
+# Système
+.DS_Store
+*.local
