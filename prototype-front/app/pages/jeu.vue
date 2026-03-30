@@ -3,7 +3,6 @@
     <div class="game-content">
       <NavMenu />
       <GameBoard />
-      <GameTimer />
     </div>
   </div>
 </template>
