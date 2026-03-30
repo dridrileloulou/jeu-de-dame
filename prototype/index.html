@@ -1,21 +1,136 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
-    <meta charset="UTF-8"> 
-    <title>Document</title>
-    <link rel="stylesheet" href="style.css"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Jeu de Dames — Prototype</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <p>Hello World</p>
-    <button id="button" onclick="add()"> Valeur: 0</button>
-    <br>
-    <p id="position">Position: </p>
-    <br>
-    <p id="positionClick">Position du click: </p>
-    <br><br>
-    <div class="boxCanva">
-        <canvas class = "gameCanva" id="canvas" width="500" height="500" class="canvas"></canvas>
-    </div>
+    <header class="app-header">
+        <h1>Jeu de Dames</h1>
+        <p class="subtitle">Prototype — Interface HTML/CSS responsive</p>
+    </header>
+
+    <main class="app-main">
+        <section class="board-area">
+            <div class="board" role="grid" aria-label="Plateau de jeu de dames">
+                <!-- 64 squares generated in HTML so CSS-only styling and initial pieces can be placed -->
+                <!-- Rows 8->1, Cols A->H (for potential coordinates) -->
+                <!-- We'll add data-pos attributes for later JS use -->
+                <!-- Dark squares (playable) get class 'dark', light squares get 'light' -->
+                <!-- Use JS later to populate pieces; for now include starting pieces markup for visuals -->
+                
+                <!-- Generate squares: row 8 down to 1 -->
+                <!-- Row 8 -->
+                <div class="square light" data-pos="A8"></div>
+                <div class="square dark" data-pos="B8"><div class="piece black"></div></div>
+                <div class="square light" data-pos="C8"></div>
+                <div class="square dark" data-pos="D8"><div class="piece black"></div></div>
+                <div class="square light" data-pos="E8"></div>
+                <div class="square dark" data-pos="F8"><div class="piece black"></div></div>
+                <div class="square light" data-pos="G8"></div>
+                <div class="square dark" data-pos="H8"><div class="piece black"></div></div>
+
+                <!-- Row 7 -->
+                <div class="square dark" data-pos="A7"><div class="piece black"></div></div>
+                <div class="square light" data-pos="B7"></div>
+                <div class="square dark" data-pos="C7"><div class="piece black"></div></div>
+                <div class="square light" data-pos="D7"></div>
+                <div class="square dark" data-pos="E7"><div class="piece black"></div></div>
+                <div class="square light" data-pos="F7"></div>
+                <div class="square dark" data-pos="G7"><div class="piece black"></div></div>
+                <div class="square light" data-pos="H7"></div>
+
+                <!-- Row 6 -->
+                <div class="square light" data-pos="A6"></div>
+                <div class="square dark" data-pos="B6"></div>
+                <div class="square light" data-pos="C6"></div>
+                <div class="square dark" data-pos="D6"></div>
+                <div class="square light" data-pos="E6"></div>
+                <div class="square dark" data-pos="F6"></div>
+                <div class="square light" data-pos="G6"></div>
+                <div class="square dark" data-pos="H6"></div>
+
+                <!-- Row 5 -->
+                <div class="square dark" data-pos="A5"></div>
+                <div class="square light" data-pos="B5"></div>
+                <div class="square dark" data-pos="C5"></div>
+                <div class="square light" data-pos="D5"></div>
+                <div class="square dark" data-pos="E5"></div>
+                <div class="square light" data-pos="F5"></div>
+                <div class="square dark" data-pos="G5"></div>
+                <div class="square light" data-pos="H5"></div>
+
+                <!-- Row 4 -->
+                <div class="square light" data-pos="A4"></div>
+                <div class="square dark" data-pos="B4"></div>
+                <div class="square light" data-pos="C4"></div>
+                <div class="square dark" data-pos="D4"></div>
+                <div class="square light" data-pos="E4"></div>
+                <div class="square dark" data-pos="F4"></div>
+                <div class="square light" data-pos="G4"></div>
+                <div class="square dark" data-pos="H4"></div>
+
+                <!-- Row 3 -->
+                <div class="square dark" data-pos="A3"><div class="piece white"></div></div>
+                <div class="square light" data-pos="B3"></div>
+                <div class="square dark" data-pos="C3"><div class="piece white"></div></div>
+                <div class="square light" data-pos="D3"></div>
+                <div class="square dark" data-pos="E3"><div class="piece white"></div></div>
+                <div class="square light" data-pos="F3"></div>
+                <div class="square dark" data-pos="G3"><div class="piece white"></div></div>
+                <div class="square light" data-pos="H3"></div>
+
+                <!-- Row 2 -->
+                <div class="square light" data-pos="A2"></div>
+                <div class="square dark" data-pos="B2"><div class="piece white"></div></div>
+                <div class="square light" data-pos="C2"></div>
+                <div class="square dark" data-pos="D2"><div class="piece white"></div></div>
+                <div class="square light" data-pos="E2"></div>
+                <div class="square dark" data-pos="F2"><div class="piece white"></div></div>
+                <div class="square light" data-pos="G2"></div>
+                <div class="square dark" data-pos="H2"><div class="piece white"></div></div>
+
+                <!-- Row 1 -->
+                <div class="square dark" data-pos="A1"><div class="piece white"></div></div>
+                <div class="square light" data-pos="B1"></div>
+                <div class="square dark" data-pos="C1"><div class="piece white"></div></div>
+                <div class="square light" data-pos="D1"></div>
+                <div class="square dark" data-pos="E1"><div class="piece white"></div></div>
+                <div class="square light" data-pos="F1"></div>
+                <div class="square dark" data-pos="G1"><div class="piece white"></div></div>
+                <div class="square light" data-pos="H1"></div>
+            </div>
+
+            <aside class="controls">
+                <div class="controls-row">
+                    <button id="newGame" class="btn">Nouvelle partie</button>
+                    <button id="reset" class="btn ghost">Réinitialiser</button>
+                </div>
+                <div class="controls-row small">
+                    <label class="toggle">
+                        <input type="checkbox" id="themeToggle">
+                        <span>Thème sombre</span>
+                    </label>
+                </div>
+                <div class="legend">
+                    <div><span class="dot white"></span> Joueur Blanc</div>
+                    <div><span class="dot black"></span> Joueur Noir</div>
+                </div>
+            </aside>
+        </section>
+
+        <section class="info">
+            <p id="status">Tour: <strong>Blanc</strong></p>
+            <p class="hint">Cliquez sur une pièce pour voir les déplacements (prototype uniquement).</p>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <small>Prototype — Interface uniquement (HTML/CSS)</small>
+    </footer>
+
     <script src="script.js"></script>
 </body>
 </html>

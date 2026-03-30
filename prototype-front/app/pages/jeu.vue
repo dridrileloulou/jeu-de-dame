@@ -2,10 +2,20 @@
   <div class="game">
     <div class="game-content">
       <NavMenu />
-      <GameBoard />
+      <GameBoard :game-mode="gameMode" />
     </div>
   </div>
 </template>
+
+<script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import NavMenu from '../components/NavMenu.vue'
+import GameBoard from '../components/GameBoard.vue'
+
+const route = useRoute()
+const gameMode = computed(() => route.query.mode || 'local')
+</script>
 
 <style>
 body {

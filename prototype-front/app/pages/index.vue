@@ -189,6 +189,8 @@ const showShopModal = ref(false)
         <p v-if="loginError" class="login-error">{{ loginError }}</p>
         <button class="btn-grey full-width" @click="loginWithCredentials">Se connecter</button>
       </div>
+
+      <NuxtLink to="/regles" class="rules-link" @click="open = false">📖 Règles du Jeu</NuxtLink>
     </div>
 
     <!-- POPUP PROFIL -->
@@ -543,6 +545,36 @@ const showShopModal = ref(false)
   border-radius: var(--radius);
   font-size: var(--fs-base);
   color: rgba(255, 255, 255, 0.6);
+/* LIEN RÈGLES */
+.rules-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 1.5rem;
+  padding: 0.6rem 1.2rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.rules-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.02);
+}
+
+/* BOUTONS GÉNÉRIQUES */
+.btn-grey {
+  padding: 1rem 2rem;
+  background: #9c9c9c;
+  color: black;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  border: none;
   cursor: pointer;
   text-align: center;
   transition: background 0.2s, color 0.2s;
