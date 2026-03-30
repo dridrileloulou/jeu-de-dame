@@ -1,6 +1,6 @@
 <template>
   <div class="game-wrapper">
-    <div class="timers-container">
+    <div class="timers-container" v-if="gameMode === 'local'">
       <PlayerTimer 
         :time-remaining="blackTime" 
         color="black" 
@@ -44,7 +44,7 @@
           </div>
         </div>
       </div>
-      <div class="right-panel">
+      <div class="right-panel" v-if="gameMode === 'local'">
         <PlayerTurn :current-player="currentPlayer" />
         <button class="pause-btn" @click="togglePause">
           {{ isPaused ? '▶ Reprendre' : '⏸ Pause' }}
@@ -71,6 +71,13 @@ const blackTime = ref(600)  // 10 minutes en secondes
 const isPaused = ref(false)
 let timerInterval = null
 
+const props = defineProps({
+  gameMode: {
+    type: String,
+    default: 'local'
+  }
+})
+
 onMounted(() => {
   board.value = new Board()
   startTimer()
@@ -82,7 +89,7 @@ onUnmounted(() => {
 
 function startTimer() {
   timerInterval = setInterval(() => {
-    if (isPaused.value) return
+    if (isPaused.value || props.gameMode !== 'local') return
     
     if (currentPlayer.value === 'white' && whiteTime.value > 0) {
       whiteTime.value--
@@ -113,7 +120,9 @@ function selectPiece(row, col) {
   }
   
   selected.value = { row, col }
-  validMoves.value = Movement.getValidMoves(board.value, piece)
+  // Utiliser getLegalMovesForPlayer pour forcer les captures si elles existent
+  const legalMoves = Movement.getLegalMovesForPlayer(board.value, piece.color)
+  validMoves.value = legalMoves.filter(m => m.from.x === col && m.from.y === row)
   console.log(`Pion sélectionné: Row ${row}, Col ${col}`, piece)
 }
 
@@ -141,7 +150,20 @@ function movePiece(toRow, toCol) {
   const piece = getPieceAt(selected.value.col, selected.value.row)
   if (!piece) return
   
+  // Trouver le mouvement dans validMoves pour vérifier si c'est une capture
+  const moveData = validMoves.value.find(m => m.x === toCol && m.y === toRow)
+  
+  // Effectuer le mouvement
   board.value.movePiece(piece, toCol, toRow)
+  
+  // Si c'est une capture, enlever le pion capturé
+  if (moveData && moveData.type === 'capture') {
+    const capturedPiece = board.value.getPiece(moveData.capturedX, moveData.capturedY)
+    if (capturedPiece !== 0) {
+      board.value.setPiece(moveData.capturedX, moveData.capturedY, 0)
+      console.log(`Pion ${capturedPiece.color} capturé!`)
+    }
+  }
   
   selected.value = null
   validMoves.value = []
