@@ -1,14 +1,9 @@
 import {Piece} from './Piece.js';
 
-/**
- * On class to represent the board of the game. 
- * 
- */
-
 export class Board {
-
-    // Initilises a board of 10x10 with 20 pawns
     constructor() {
+        // Create a 10x10 grid with starting positions
+        // 0 = empty, 1 = black, 2 = white
         this.board = [
             [0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
             [1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
@@ -21,41 +16,34 @@ export class Board {
             [0, 2, 0, 2, 0, 2, 0, 2, 0, 2],
             [2, 0, 2, 0, 2, 0, 2, 0, 2, 0],
         ];
-        for (let j = 0; j < this.board.length; j++) {
-            for (let i = 0; i < this.board[j].length; i++) {
+
+        // Replace numbers (1 and 2) with real Piece objects
+        for (let j = 0; j < 10; j++) {
+            for (let i = 0; i < 10; i++) {
                 if (this.board[j][i] === 1) {
                     this.board[j][i] = new Piece("black", i, j);
                 } else if (this.board[j][i] === 2) {
-                    //this.placePion(new Pion(i, j, "white"));
                     this.board[j][i] = new Piece("white", i, j);
                 } 
             }
         }
     }
 
+    // Return the piece at (x, y) or null if out of bounds
     getPiece(x, y) {
-        if (y < 0 || y >= 10 || x < 0 || x >= 10) {
-            return null;
-        }
+        if (y < 0 || y >= 10 || x < 0 || x >= 10) return null;
         return this.board[y][x];
     }
 
+    // Set a piece (or 0 for empty) at a specific position
     setPiece(x, y, piece) {
         this.board[y][x] = piece;
     }
 
-    movePiece(oldPiece, newX, newY) {
-        const piece = this.board[oldPiece.y][oldPiece.x];
-
-        if (piece === 0) {
-            console.log("Erreur: il n'y a pas de piece à l'endroit demandé");
-            return;
-        }
-
-        this.board[newY][newX] = piece;
-        this.board[oldPiece.y][oldPiece.x] = 0;
-
-        piece.movePiece(newX, newY);
-
+    // Move a piece from its old spot to a new one
+    movePiece(piece, newX, newY) {
+        this.board[newY][newX] = piece; // Put piece in new spot
+        this.board[piece.y][piece.x] = 0; // Empty the old spot
+        piece.movePiece(newX, newY); // Tell the piece its new coordinates
     }
 }

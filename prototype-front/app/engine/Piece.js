@@ -1,27 +1,19 @@
-/**
- * A class to modelize a piece in the game. 
- */
-export class Piece  {
-    /**
-     * Constructor of a piece
-     * By default, a piece is not a Draught
-     * @param {String} color 
-     * @param {number} x 
-     * @param {number} y 
-     */
+export class Piece {
     constructor(color, x, y) {
-        this.color = color;
+        this.color = color; // "white" or "black"
         this.x = x;
         this.y = y;
-        this.isDraught = false;
+        this.isDraught = false; // Becomes true if the piece reaches the opposite side
     }
-    
+
+    // Change this piece into a King (Draught)
+    promote() {
+        this.isDraught = true;
+    }
+
+    // Update the piece internal coordinates
     movePiece(newX, newY) {
         this.x = newX;
         this.y = newY;
-    }
-
-    promote() {
-        this.isDraught = true;
     }
 }
