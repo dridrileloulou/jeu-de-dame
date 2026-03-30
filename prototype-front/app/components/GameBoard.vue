@@ -37,7 +37,8 @@
                 selected: isSelected(row, col),
                 black: getPieceAt(col, row)?.color === 'black',
                 white: getPieceAt(col, row)?.color === 'white',
-                draught: getPieceAt(col, row)?.isDraught
+                draught: getPieceAt(col, row)?.isDraught,
+                mandatoryCapture: isMandatoryCapture(row, col)
               }"
               @click.stop="selectPiece(row, col)"
             />
@@ -55,7 +56,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { Board } from '../engine/Board.js'
 import { Movement } from '../engine/Movement.js'
 import PlayerTurn from './PlayerTurn.vue'
@@ -69,6 +70,7 @@ const currentPlayer = ref('white')  // Blanc commence
 const whiteTime = ref(600)  // 10 minutes en secondes
 const blackTime = ref(600)  // 10 minutes en secondes
 const isPaused = ref(false)
+const mandatoryCapturePositions = ref([])  // Pions qui doivent capturer
 let timerInterval = null
 
 const props = defineProps({
@@ -78,8 +80,31 @@ const props = defineProps({
   }
 })
 
+// Écouter les changements de joueur pour mettre à jour les positions de capture obligatoire
+watch(() => currentPlayer.value, () => {
+  updateMandatoryCapturePositions()
+})
+
+function updateMandatoryCapturePositions() {
+  if (!board.value) return
+  
+  const legalMoves = Movement.getLegalMovesForPlayer(board.value, currentPlayer.value)
+  const capturePositions = new Set()
+  const hasAnyCapture = legalMoves.some(m => m.type === 'capture')
+  
+  if (hasAnyCapture) {
+    legalMoves.forEach(m => {
+      if (m.type === 'capture') {
+        capturePositions.add(`${m.from.x}_${m.from.y}`)
+      }
+    })
+  }
+  mandatoryCapturePositions.value = Array.from(capturePositions)
+}
+
 onMounted(() => {
   board.value = new Board()
+  updateMandatoryCapturePositions()
   startTimer()
 })
 
@@ -119,6 +144,12 @@ function selectPiece(row, col) {
     return
   }
   
+  // Si il y a des captures obligatoires, vérifier que ce pion en fait partie
+  if (mandatoryCapturePositions.value.length > 0 && !mandatoryCapturePositions.value.includes(`${col}_${row}`)) {
+    console.log(`Ce pion doit capturer!`)
+    return
+  }
+  
   selected.value = { row, col }
   // Utiliser getLegalMovesForPlayer pour forcer les captures si elles existent
   const legalMoves = Movement.getLegalMovesForPlayer(board.value, piece.color)
@@ -128,6 +159,10 @@ function selectPiece(row, col) {
 
 function isSelected(row, col) {
   return selected.value?.row === row && selected.value?.col === col
+}
+
+function isMandatoryCapture(row, col) {
+  return mandatoryCapturePositions.value.includes(`${col}_${row}`)
 }
 
 function isValidMove(row, col) {
@@ -163,10 +198,26 @@ function movePiece(toRow, toCol) {
       board.value.setPiece(moveData.capturedX, moveData.capturedY, 0)
       console.log(`Pion ${capturedPiece.color} capturé!`)
     }
+    
+    // Raffle: vérifier si le pion peut capturer à nouveau
+    const updatedPiece = board.value.getPiece(toCol, toRow)
+    const legalMoves = Movement.getLegalMovesForPlayer(board.value, updatedPiece.color)
+    const nextCaptures = legalMoves.filter(m => m.from.x === toCol && m.from.y === toRow && m.type === 'capture')
+    
+    if (nextCaptures.length > 0) {
+      // Raffle possible! Garder ce pion sélectionné
+      selected.value = { row: toRow, col: toCol }
+      validMoves.value = nextCaptures
+      mandatoryCapturePositions.value = [`${toCol}_${toRow}`]
+      boardUpdate.value++
+      console.log(`Raffle possible! Le pion à (${toCol}, ${toRow}) doit capturer à nouveau`)
+      return
+    }
   }
   
   selected.value = null
   validMoves.value = []
+  mandatoryCapturePositions.value = []
   boardUpdate.value++  // Force le re-render
   
   // Basculer au joueur suivant
@@ -287,15 +338,42 @@ function movePiece(toRow, toCol) {
 .piece.white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); }
 
 .piece.draught {
-  box-shadow: inset 0 -4px 6px rgba(0,0,0,0.3), 2px 2px 4px rgba(0,0,0,0.4), 0 0 0 3px rgba(255, 215, 0, 0.8);
+  box-shadow: inset 0 -4px 6px rgba(0,0,0,0.3), 2px 2px 4px rgba(0,0,0,0.4), 0 0 0 4px rgba(255, 215, 0, 0.9), 0 0 15px rgba(255, 215, 0, 0.6);
+  position: relative;
+  border: 2px solid rgba(255, 215, 0, 0.7);
+}
+
+.piece.draught::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 200, 0.8), transparent);
+  border-radius: 50%;
+  z-index: -1;
+}
+
+.piece.draught::after {
+  content: '♛';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  font-size: 2.2rem;
+  color: rgba(255, 215, 0, 0.95);
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.7), 0 2px 4px rgba(0, 0, 0, 0.5);
+  font-weight: bold;
 }
 
 .piece.draught.black {
-  background: radial-gradient(circle at 35% 35%, #777, #222);
+  background: radial-gradient(circle at 35% 35%, #888, #111);
 }
 
 .piece.draught.white {
-  background: radial-gradient(circle at 35% 35%, #fff, #f0f0f0);
+  background: radial-gradient(circle at 35% 35%, #fff, #e8e8e8);
 }
 
 .piece.selected {
@@ -305,6 +383,16 @@ function movePiece(toRow, toCol) {
 
 .piece.draught.selected {
   box-shadow: 0 0 12px 4px gold, 0 0 0 3px rgba(255, 215, 0, 0.8), inset 0 -4px 6px rgba(0,0,0,0.3);
+}
+
+.piece.mandatoryCapture {
+  box-shadow: 0 0 15px 6px #ff2200, inset 0 -4px 6px rgba(0,0,0,0.3), 2px 2px 4px rgba(0,0,0,0.4);
+  animation: captureGlow 0.6s ease-in-out infinite;
+}
+
+@keyframes captureGlow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
 }
 
 .pause-btn {
