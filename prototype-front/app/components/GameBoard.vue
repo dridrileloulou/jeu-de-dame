@@ -227,6 +227,7 @@ function movePiece(toRow, toCol) {
 </script>
 
 <style scoped>
+/* --- Configuration Globale --- */
 * {
   box-sizing: border-box;
 }
@@ -234,155 +235,104 @@ function movePiece(toRow, toCol) {
 .game-wrapper {
   display: flex;
   align-items: center;
-  gap: 30px;
+  justify-content: center;
+  gap: 20px;
+  min-height: 100vh;
+  background-color: transparent;
+  padding: 10px;
+  overflow: hidden;
 }
 
+/* --- Conteneur Principal (#444 de ton accueil) --- */
 .board-container {
   display: flex;
   align-items: center;
-  gap: 40px;
+  gap: 30px;
+  padding: 20px;
+  background-color: #444444; 
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
 }
 
-.right-panel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-}
-
-.timers-container {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 50px;
-}
-
+/* --- LE PLATEAU (Structure Rows conservée) --- */
 .board {
   display: inline-block;
   border: 5px solid #0a0a0a;
   position: relative;
+  background-color: #0a0a0a;
 }
 
 .board.paused {
-  opacity: 0.6;
-}
-
-.pause-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  border-radius: 4px;
-}
-
-.pause-text {
-  font-size: 3rem;
-  font-weight: bold;
-  color: #ff2200;
-  text-shadow: 0 0 20px #ff2200;
-  animation: pulse 1s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-}
-
-.row {
-  display: flex;
-}
-
-.cell {
-  width: 90px;
-  height: 90px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dark  { background-color: #8B4513; }
-.light { background-color: #F5DEB3; }
-
-.shadowed {
   position: relative;
 }
 
+.board.paused::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 5;
+}
+
+.row {
+  display: flex; /* Aligne les 10 cases horizontalement */
+}
+
+.cell {
+  /* On définit la taille en fonction de la hauteur de l'écran (vh) 
+     8vh * 10 cases = 80% de la hauteur de l'écran. Ça rentrera toujours. */
+  width: clamp(40px, 8vh, 80px);
+  height: clamp(40px, 8vh, 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Case Sombre : Gris #262626 */
+.dark { 
+  background-color: #262626; 
+} 
+
+/* Case Claire : Gris #b0b0b0 */
+.light { 
+  background-color: #b0b0b0; 
+} 
+
+/* Indicateur de mouvement possible (Style Initial) */
 .shadowed::before {
   content: '';
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 45px;
-  height: 45px;
+  width: 45%;
+  height: 45%;
   border-radius: 50%;
   background-color: rgba(2, 2, 2, 0.5);
   z-index: 1;
 }
 
+/* --- Pions : STYLE INITIAL COMPLET --- */
 .piece {
-  width: 75px; 
-  height: 75px;
+  width: 80%; 
+  height: 80%;
   border-radius: 50%;
   border: 3px solid rgba(0,0,0,0.3);
   box-shadow: inset 0 -4px 6px rgba(0,0,0,0.3), 2px 2px 4px rgba(0,0,0,0.4);
+  position: relative;
+  z-index: 2;
+  transition: transform 0.2s ease;
 }
 
 .piece.black { background: radial-gradient(circle at 35% 35%, #555, #111); }
 .piece.white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); }
 
-.piece.draught {
-  box-shadow: inset 0 -4px 6px rgba(0,0,0,0.3), 2px 2px 4px rgba(0,0,0,0.4), 0 0 0 4px rgba(255, 215, 0, 0.9), 0 0 15px rgba(255, 215, 0, 0.6);
-  position: relative;
-  border: 2px solid rgba(255, 215, 0, 0.7);
-}
-
-.piece.draught::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 50px;
-  height: 50px;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 200, 0.8), transparent);
-  border-radius: 50%;
-  z-index: -1;
-}
-
-.piece.draught::after {
-  content: '♛';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -55%);
-  font-size: 2.2rem;
-  color: rgba(255, 215, 0, 0.95);
-  text-shadow: 0 0 6px rgba(0, 0, 0, 0.7), 0 2px 4px rgba(0, 0, 0, 0.5);
-  font-weight: bold;
-}
-
-.piece.draught.black {
-  background: radial-gradient(circle at 35% 35%, #888, #111);
-}
-
-.piece.draught.white {
-  background: radial-gradient(circle at 35% 35%, #fff, #e8e8e8);
-}
-
 .piece.selected {
   box-shadow: 0 0 12px 4px gold, inset 0 -4px 6px rgba(0,0,0,0.3);
   transform: scale(1.1);
-}
-
-.piece.draught.selected {
-  box-shadow: 0 0 12px 4px gold, 0 0 0 3px rgba(255, 215, 0, 0.8), inset 0 -4px 6px rgba(0,0,0,0.3);
 }
 
 .piece.mandatoryCapture {
@@ -395,25 +345,107 @@ function movePiece(toRow, toCol) {
   50% { transform: scale(1.08); }
 }
 
+/* --- Dames : STYLE INITIAL COMPLET --- */
+.piece.draught {
+  box-shadow: inset 0 -4px 6px rgba(0,0,0,0.3), 2px 2px 4px rgba(0,0,0,0.4), 0 0 0 4px rgba(255, 215, 0, 0.9), 0 0 15px rgba(255, 215, 0, 0.6);
+  border: 2px solid rgba(255, 215, 0, 0.7);
+}
+
+.piece.draught::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 200, 0.8), transparent);
+  border-radius: 50%;
+  z-index: -1;
+}
+
+.piece.draught::after {
+  content: '♛';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  font-size: clamp(1rem, 3vh, 2.2rem);
+  color: rgba(255, 215, 0, 0.95);
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.7);
+}
+
+/* --- UI Panel & Tour Dynamique --- */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  min-width: 200px;
+}
+
+/* Style demandé pour l'indicateur de tour */
+.turn-indicator {
+  padding: 15px 25px;
+  border-radius: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-align: center;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+/* NOIR joue : Gris foncé #262626, Police blanche */
+.turn-indicator.black {
+  background-color: #262626;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* BLANC joue : Blanc, Police gris foncé #262626 */
+.turn-indicator.white {
+  background-color: #ffffff;
+  color: #262626;
+  border: 1px solid #ccc;
+}
+
 .pause-btn {
-  padding: 12px 20px;
+  width: 100%;
+  padding: 12px;
   border-radius: 8px;
   border: 2px solid #ff2200;
   background: rgba(255, 34, 0, 0.2);
   color: #ff2200;
-  font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s ease;
-  min-width: 140px;
 }
 
 .pause-btn:hover {
   background: rgba(255, 34, 0, 0.4);
-  box-shadow: 0 0 10px #ff2200;
 }
 
-.pause-btn:active {
-  transform: scale(0.95);
+.pause-overlay {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 10; /* au-dessus du blur */
+}
+
+.pause-text {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #ff2200;
+  text-shadow: 0 0 20px #ff2200;
+}
+
+.timers-container {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
 }
 </style>

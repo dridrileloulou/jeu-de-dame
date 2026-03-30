@@ -31,35 +31,38 @@ defineProps({
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   font-size: 18px;
   font-weight: bold;
   color: white;
 }
 
 .label {
-  color: #ccc;
+  color: rgba(255,255,255,0.6);
 }
 
+/* bouton du tour */
 .player-indicator {
-  padding: 12px 20px;
-  border-radius: 8px;
-  min-width: 140px;
+  padding: 14px 26px;
+  border-radius: 12px;
+  min-width: 150px;
   text-align: center;
-  transition: all 0.3s ease;
   font-size: 20px;
-  font-weight: bold;
+  font-weight: 700;
+  transition: all 0.25s ease;
 }
 
+/* TOUR BLANC */
 .player-indicator.white {
-  background-color: #f5deb3;
-  color: #000;
-  box-shadow: 0 0 10px rgba(245, 222, 179, 0.5);
+  background: #b0b0b0;
+  color: #262626;
+  border: 1px solid rgba(0,0,0,0.5);
 }
 
+/* TOUR NOIR */
 .player-indicator.black {
-  background-color: #555;
-  color: #fff;
-  box-shadow: 0 0 10px rgba(85, 85, 85, 0.5);
+  background: #262626;
+  color: #b0b0b0;
+  border: 1px solid rgba(255,255,255,0.2);
 }
 </style>

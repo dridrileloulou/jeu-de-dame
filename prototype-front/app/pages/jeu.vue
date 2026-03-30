@@ -16,7 +16,7 @@ body {
 <style scoped>
 .game {
   min-height: 100vh;
-  background: hsl(244, 70%, 22%);
+  background:#abaaaa;
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -20,34 +20,39 @@ const open = ref(false)
 <style scoped>
 .hamburger {
   position: fixed;
-  top: 20px;
-  left: 20px;
+  top: 22px;
+  left: 22px;
   cursor: pointer;
   z-index: 100;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 
 .hamburger span {
   display: block;
   width: 30px;
   height: 3px;
-  background: white;
+  background: #bfbfbf;
   border-radius: 3px;
+  transition: 0.2s;
 }
 
 .menu {
   position: fixed;
   top: 0;
-  left: -250px;
-  width: 250px;
+  left: -260px;
+  width: 260px;
   height: 100vh;
-  background: #0c0131;
+
+  background: #262626;
+  border-right: 1px solid rgba(255,255,255,0.1);
+
   display: flex;
   flex-direction: column;
-  padding: 80px 30px;
-  gap: 20px;
+  padding: 90px 30px;
+  gap: 25px;
+
   transition: left 0.3s ease;
   z-index: 99;
 }
@@ -57,12 +62,15 @@ const open = ref(false)
 }
 
 .menu a {
-  color: white;
+  color: #bfbfbf;
   text-decoration: none;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
+  font-weight: 500;
+  transition: 0.2s;
 }
 
 .menu a:hover {
-  color: gold;
+  color: white;
+  transform: translateX(5px);
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="timer-box" :class="{ active: isActive }">
+  <div class="timer-box" :class="[color, { active: isActive }]">
     <div class="timer-text">{{ formattedTime }}</div>
   </div>
 </template>
@@ -31,35 +31,65 @@ const formattedTime = computed(() => {
 
 <style scoped>
 .timer-box {
-  padding: 10px 16px;
-  border-radius: 6px;
-  background: rgba(100, 100, 100, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
+
+  padding: 12px 20px;
+  border-radius: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  border: 2px solid #000;
 }
 
 .timer-text {
-  font-size: 1.2rem;
-  font-family: 'Courier New', monospace;
-  font-weight: bold;
-  color: #ccc;
+  /* --- LA POLICE CLASSIQUE ET NETTE DE TES BOUTONS D'ACCUEIL --- */
+  font-family: Arial, Helvetica, 'Courier New', monospace; /* Priorité à Arial/Helvetica pour la netteté */
+  font-size: 1.6rem;
+  font-weight: bold; /* Gras comme tes boutons */
   text-align: center;
-  min-width: 70px;
+  font-variant-numeric: tabular-nums; /* Très important : force la même largeur pour tous les chiffres */
 }
 
+/* --- ÉTAT INACTIF (Les couleurs exactes de ton image) --- */
+
+/* Joueur BLANC : Fond gris clair #b0b0b0, Texte gris foncé #262626 */
+.timer-box.white {
+  background-color: #b0b0b0;
+}
+.timer-box.white .timer-text {
+  color: #262626;
+}
+
+/* Joueur NOIR : Fond gris foncé #262626, Texte gris clair #b0b0b0 */
+.timer-box.black {
+  background-color: #262626;
+}
+.timer-box.black .timer-text {
+  color: #b0b0b0;
+}
+
+/* --- ÉTAT ACTIF (Quand il décompte : Ton rouge #ff2200) --- */
 .timer-box.active {
-  background: rgba(255, 34, 0, 0.3);
-  border-color: #ff2200;
-  animation: pulse 1s ease-in-out infinite;
+  background-color: #1a0505 !important; /* Fond très sombre */
+  border: 2px solid #ff2200 !important;
+  box-shadow: 0 0 15px rgba(255, 34, 0, 0.4);
+  transform: scale(1.05);
 }
 
 .timer-box.active .timer-text {
-  color: #ff2200;
-  text-shadow: 0 0 8px #ff2200;
+  color: #ff2200 !important;
+  text-shadow: 0 0 8px rgba(255, 34, 0, 0.6);
+}
+
+/* On garde l'animation de pulse discrète pour le joueur actif */
+.timer-box.active {
+  animation: pulse 1s ease-in-out infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
 }
 </style>
