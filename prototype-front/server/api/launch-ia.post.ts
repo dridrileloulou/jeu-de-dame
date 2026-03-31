@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   console.log(`[API] Lancement du bot IA : node ${scriptName}`);
 
   // Lance le script en arrière-plan sans bloquer le serveur
-  const child = spawn('node', [scriptPath], {
+  const child = spawn(process.execPath, [scriptPath], {
     cwd: scriptDir,
     detached: true,
     stdio: 'ignore'
