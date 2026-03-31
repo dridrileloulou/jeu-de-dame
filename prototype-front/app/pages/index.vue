@@ -545,6 +545,8 @@ const showShopModal = ref(false)
   border-radius: var(--radius);
   font-size: var(--fs-base);
   color: rgba(255, 255, 255, 0.6);
+}
+
 /* LIEN RÈGLES */
 .rules-link {
   display: inline-flex;
