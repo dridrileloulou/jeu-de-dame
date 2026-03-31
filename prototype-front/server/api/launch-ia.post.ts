@@ -17,8 +17,9 @@ export default defineEventHandler(async (event) => {
     return createError({ statusCode: 400, message: 'Invalid level specified' });
   }
 
-  const scriptPath = '/home/badi/ENSEIRB/S8/projet/jeu-de-dame/nuxt_IA/ia_levels/' + scriptName;
-  const scriptDir = '/home/badi/ENSEIRB/S8/projet/jeu-de-dame/nuxt_IA/ia_levels/';
+  // Utilisation d'un chemin relatif pour que le projet soit portable pour les testeurs
+  const scriptDir = path.resolve(process.cwd(), '../nuxt_IA/ia_levels/');
+  const scriptPath = path.resolve(scriptDir, scriptName);
 
   console.log(`[API] Lancement du bot IA : node ${scriptName}`);
 
