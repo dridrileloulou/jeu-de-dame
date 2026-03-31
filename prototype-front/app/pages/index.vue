@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 const { loggedIn, user, clear } = useUserSession()
 
 const showDifficulty = ref(false)
-const difficulty = ref('normale')
+const difficulty = ref('normal')
 const router = useRouter()
 
 const showAuthModal = ref(false)
@@ -41,8 +41,19 @@ function startIA() {
   showDifficulty.value = true
 }
 
-function confirmDifficulty() {
-  router.push(`/jeu?mode=ia&level=${difficulty.value}`)
+async function confirmDifficulty() {
+  try {
+    // Demande au serveur de lancer le script Puppeteer du bot correspondant
+    await $fetch('/api/launch-ia', {
+      method: 'POST',
+      body: { level: difficulty.value }
+    })
+  } catch (err) {
+    console.error('Erreur lors du lancement de l\'IA :', err)
+  }
+  
+  // Referme simplement la fenêtre sans rediriger la page principale
+  showDifficulty.value = false;
 }
 
 const showRulesModal = ref(false)
@@ -111,15 +122,16 @@ const showShopModal = ref(false)
               <span class="btn-icon">🌐</span>
               Jouer en ligne
             </NuxtLink>
-            <button class="btn-mode" @click="startIA">
-              <span class="btn-icon">🤖</span>
-              Jouer contre une IA
-            </button>
           </template>
 
           <p v-else class="connect-hint" @click="showAuthModal = true">
-            🔒 Connectez-vous pour jouer en ligne ou contre une IA
+            🔒 Connectez-vous pour jouer en ligne
           </p>
+
+          <button class="btn-mode" @click="startIA">
+            <span class="btn-icon">🤖</span>
+            Jouer contre une IA
+          </button>
 
           <NuxtLink to="/jeu?mode=local" class="btn-mode">
             <span class="btn-icon">👥</span>
@@ -147,7 +159,7 @@ const showShopModal = ref(false)
         <h3>Niveau de difficulté</h3>
         <select v-model="difficulty">
           <option value="facile">Facile</option>
-          <option value="normale">Normale</option>
+          <option value="normal">Normal</option>
           <option value="difficile">Difficile</option>
           <option value="expert">Expert</option>
         </select>
