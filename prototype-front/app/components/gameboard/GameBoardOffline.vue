@@ -57,10 +57,10 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { Board } from '../engine/Board.js'
-import { Movement } from '../engine/Movement.js'
-import PlayerTurn from './PlayerTurn.vue'
-import PlayerTimer from './PlayerTimer.vue'
+import { Board } from '../../engine/Board.js'
+import { Movement } from '../../engine/Movement.js'
+import PlayerTurn from '../PlayerTurn.vue'
+import PlayerTimer from '../PlayerTimer.vue'
 
 const board = ref(null)
 const selected = ref(null)

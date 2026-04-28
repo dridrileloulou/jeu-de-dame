@@ -2,25 +2,14 @@
   <div class="game">
     <div class="game-content">
       <NavMenu />
-      <GameBoardIA v-if="gameMode === 'ia'" />
-      <GameBoardOffline v-else-if="gameMode === 'local'" />
-      <GameBoardOnline v-else-if="gameMode === 'online'" />
-      <GameBoard v-else />
+      <GameBoardOnline />
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
 import NavMenu from '../components/NavMenu.vue'
-import GameBoard from '../components/gameboard/GameBoard.vue'
-import GameBoardIA from '../components/gameboard/GameBoardIA.vue'
-import GameBoardOffline from '../components/gameboard/GameBoardOffline.vue'
 import GameBoardOnline from '../components/gameboard/GameBoardOnline.vue'
-
-const route = useRoute()
-const gameMode = computed(() => route.query.mode || 'local')
 </script>
 
 <style>
@@ -51,4 +40,4 @@ body {
 .back {
   color: white;
 }
-</style>  
+</style>
