@@ -1,0 +1,211 @@
+<script setup>
+import { ref, computed } from 'vue'
+import NavMenu from '../components/NavMenu.vue'
+import GameBoardOffline from '../components/gameboard/GameBoardOffline.vue'
+
+const started      = ref(false)
+const timerChoice  = ref('none')
+const customMins   = ref(5)
+
+const timerSeconds = computed(() => {
+  if (timerChoice.value === 'none')   return 0
+  if (timerChoice.value === '5min')   return 300
+  if (timerChoice.value === '10min')  return 600
+  return customMins.value * 60
+})
+
+function launch() { started.value = true }
+</script>
+
+<template>
+  <div class="page">
+    <NavMenu />
+
+    <!-- Modal de configuration -->
+    <div v-if="!started" class="backdrop">
+      <div class="modal">
+        <NuxtLink to="/" class="modal-close">✕</NuxtLink>
+
+        <h2 class="modal-title">👥 Jouer contre un ami</h2>
+        <p class="modal-sub">Deux joueurs sur le même écran, en alternance.</p>
+
+        <div class="field">
+          <span class="field-label">Temps par joueur</span>
+          <div class="btn-group">
+            <button
+              v-for="opt in [{ v:'none',l:'♾ Sans timer' },{ v:'5min',l:'5 min' },{ v:'10min',l:'10 min' },{ v:'custom',l:'Perso' }]"
+              :key="opt.v"
+              :class="['pill', { active: timerChoice === opt.v }]"
+              @click="timerChoice = opt.v"
+            >{{ opt.l }}</button>
+          </div>
+
+          <div v-if="timerChoice === 'custom'" class="custom-row">
+            <input v-model.number="customMins" type="number" min="1" max="60" class="num-input" />
+            <span class="num-label">minutes</span>
+          </div>
+        </div>
+
+        <button class="btn-launch" @click="launch">Lancer la partie →</button>
+      </div>
+    </div>
+
+    <!-- Plateau -->
+    <div v-else class="board-wrap">
+      <GameBoardOffline :timer-seconds="timerSeconds" />
+    </div>
+  </div>
+</template>
+
+<style>
+body { overflow: hidden; }
+</style>
+
+<style scoped>
+.page {
+  min-height: 100vh;
+  background: #abaaaa;
+  display: flex;
+  flex-direction: column;
+  font-family: Arial, sans-serif;
+  color: white;
+}
+
+/* ── Backdrop ── */
+.backdrop {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+/* ── Modal ── */
+.modal {
+  position: relative;
+  background: #222;
+  border-radius: 18px;
+  padding: 2.4rem 2.8rem;
+  width: min(460px, 92vw);
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.modal-close {
+  position: absolute;
+  top: 1.1rem;
+  right: 1.2rem;
+  color: rgba(255,255,255,0.35);
+  font-size: 1.1rem;
+  text-decoration: none;
+  line-height: 1;
+  transition: color 0.2s;
+}
+.modal-close:hover { color: white; }
+
+.modal-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.modal-sub {
+  margin: -0.6rem 0 0;
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.45);
+}
+
+/* ── Champs ── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.field-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(255,255,255,0.45);
+}
+
+.btn-group {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.pill {
+  flex: 1;
+  min-width: 80px;
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.7);
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  text-align: center;
+}
+.pill:hover { background: rgba(255,255,255,0.13); color: white; }
+.pill.active {
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.55);
+  color: white;
+  font-weight: 600;
+}
+
+.custom-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.num-input {
+  width: 72px;
+  padding: 0.42rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.08);
+  color: white;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.num-label {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.5);
+}
+
+/* ── Bouton lancer ── */
+.btn-launch {
+  margin-top: 0.4rem;
+  padding: 0.78rem 1.4rem;
+  border-radius: 12px;
+  border: none;
+  background: #b0b0b0;
+  color: #111;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+.btn-launch:hover { background: #c8c8c8; transform: scale(1.02); }
+
+/* ── Board ── */
+.board-wrap {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 30px;
+  margin: 2rem 0;
+  margin-left: 100px;
+}
+</style>
