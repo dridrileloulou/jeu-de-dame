@@ -9,4 +9,8 @@ export default defineNuxtConfig({
   },
 
   modules: ['nuxt-auth-utils'],
+
+  nitro: {
+    experimental: { websocket: true }
+  }
 })

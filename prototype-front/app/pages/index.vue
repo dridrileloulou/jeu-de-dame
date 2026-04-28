@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import Header from '../components/index/Header.vue'
 import GameModePanel from '../components/index/GameModePanel.vue'
 import DifficultyModal from '../components/index/DifficultyModal.vue'
 import AuthModal from '../components/index/AuthModal.vue'
@@ -42,6 +43,9 @@ const showShopModal = ref(false)
 
 <template>
   <div class="home">
+
+    <!-- HEADER -->
+    <Header @open-auth="showAuthModal = true" @open-profile="openProfile" />
 
     <!-- CENTRE -->
     <GameModePanel

@@ -1,6 +1,6 @@
 <template>
   <div class="game-wrapper">
-    <div class="timers-container" v-if="gameMode === 'local'">
+    <div class="timers-container" v-if="timerSeconds > 0">
       <PlayerTimer 
         :time-remaining="blackTime" 
         color="black" 
@@ -62,23 +62,21 @@ import { Movement } from '../../engine/Movement.js'
 import PlayerTurn from '../PlayerTurn.vue'
 import PlayerTimer from '../PlayerTimer.vue'
 
+const props = defineProps({
+  gameMode:     { type: String, default: 'local' },
+  timerSeconds: { type: Number, default: 0 }
+})
+
 const board = ref(null)
 const selected = ref(null)
 const validMoves = ref([])
-const boardUpdate = ref(0)  // Forcer le re-render
-const currentPlayer = ref('white')  // Blanc commence
-const whiteTime = ref(600)  // 10 minutes en secondes
-const blackTime = ref(600)  // 10 minutes en secondes
+const boardUpdate = ref(0)
+const currentPlayer = ref('white')
+const whiteTime = ref(props.timerSeconds)
+const blackTime = ref(props.timerSeconds)
 const isPaused = ref(false)
-const mandatoryCapturePositions = ref([])  // Pions qui doivent capturer
+const mandatoryCapturePositions = ref([])
 let timerInterval = null
-
-const props = defineProps({
-  gameMode: {
-    type: String,
-    default: 'local'
-  }
-})
 
 // Écouter les changements de joueur pour mettre à jour les positions de capture obligatoire
 watch(() => currentPlayer.value, () => {
@@ -113,14 +111,11 @@ onUnmounted(() => {
 })
 
 function startTimer() {
+  if (props.timerSeconds === 0) return
   timerInterval = setInterval(() => {
-    if (isPaused.value || props.gameMode !== 'local') return
-    
-    if (currentPlayer.value === 'white' && whiteTime.value > 0) {
-      whiteTime.value--
-    } else if (currentPlayer.value === 'black' && blackTime.value > 0) {
-      blackTime.value--
-    }
+    if (isPaused.value) return
+    if (currentPlayer.value === 'white' && whiteTime.value > 0) whiteTime.value--
+    else if (currentPlayer.value === 'black' && blackTime.value > 0) blackTime.value--
   }, 1000)
 }
 
