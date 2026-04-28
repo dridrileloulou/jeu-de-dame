@@ -1,0 +1,12 @@
+{
+  "name": "jeu-de-dame",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "cd prototype-front && npm ci && npm run build",
+    "start": "node prototype-front/.output/server/index.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
