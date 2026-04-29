@@ -1,41 +1,44 @@
 <template>
-  <div class="game-wrapper">
-
-    <!-- Game Over Overlay -->
-    <div v-if="winner" class="gameover-overlay">
-      <div class="gameover-card">
-        <div class="gameover-crown">♛</div>
-        <h2 class="gameover-title">{{ winner === 'white' ? 'Blanc' : 'Noir' }} a gagné !</h2>
-        <div class="gameover-scores">
-          <div class="gscore">
-            <span class="gscore-pip pip--white"></span>
-            <span class="gscore-label">Blanc</span>
-            <span class="gscore-val">{{ whiteCaptured }}</span>
-          </div>
-          <span class="gscore-sep">·</span>
-          <div class="gscore">
-            <span class="gscore-pip pip--black"></span>
-            <span class="gscore-label">Noir</span>
-            <span class="gscore-val">{{ blackCaptured }}</span>
-          </div>
+  <!-- Game Over -->
+  <div v-if="winner" class="gameover-overlay">
+    <div class="gameover-card">
+      <div class="gameover-crown">♛</div>
+      <h2 class="gameover-title">{{ winner === 'white' ? 'Blanc' : 'Noir' }} a gagné !</h2>
+      <div class="gameover-scores">
+        <div class="gscore">
+          <span class="gscore-pip pip--white"></span>
+          <span class="gscore-label">Blanc</span>
+          <span class="gscore-val">{{ whiteCaptured }}</span>
         </div>
-        <button class="gameover-btn" @click="resetGame">Rejouer</button>
+        <span class="gscore-sep">·</span>
+        <div class="gscore">
+          <span class="gscore-pip pip--black"></span>
+          <span class="gscore-label">Noir</span>
+          <span class="gscore-val">{{ blackCaptured }}</span>
+        </div>
       </div>
+      <button class="gameover-btn" @click="resetGame">Rejouer</button>
+    </div>
+  </div>
+
+  <!-- Layout chess.com -->
+  <div class="game-layout">
+
+    <!-- Strip joueur NOIR (haut) -->
+    <div class="player-strip" :class="{ 'strip-active': currentPlayer === 'black' }">
+      <div class="strip-left">
+        <div class="strip-dot dot-black"></div>
+        <span class="strip-name">Noir</span>
+        <div class="strip-caps" v-if="blackCaptured > 0">
+          <span class="strip-cap-count">+{{ blackCaptured }}</span>
+          <span v-for="i in Math.min(blackCaptured, 10)" :key="i" class="strip-pip pip--white"></span>
+        </div>
+      </div>
+      <PlayerTimer v-if="timerSeconds > 0" :time-remaining="blackTime" color="black" :is-active="currentPlayer === 'black'" />
     </div>
 
-    <div class="timers-container" v-if="timerSeconds > 0">
-      <PlayerTimer 
-        :time-remaining="blackTime" 
-        color="black" 
-        :is-active="currentPlayer === 'black'"
-      />
-      <PlayerTimer 
-        :time-remaining="whiteTime" 
-        color="white" 
-        :is-active="currentPlayer === 'white'"
-      />
-    </div>
-    <div class="board-container">
+    <!-- Plateau -->
+    <div class="board-area">
       <div class="board" :class="{ paused: isPaused }">
         <div class="pause-overlay" v-if="isPaused">
           <div class="pause-text">PAUSE</div>
@@ -52,11 +55,10 @@
             }"
             @click="handleCellClick(row, col)"
           >
-            <!-- Affichage des pions depuis le board -->
             <div
               v-if="getPieceAt(col, row)"
               class="piece"
-              :class="{ 
+              :class="{
                 selected: isSelected(row, col),
                 black: getPieceAt(col, row)?.color === 'black',
                 white: getPieceAt(col, row)?.color === 'white',
@@ -68,39 +70,37 @@
           </div>
         </div>
       </div>
-      <div class="right-panel" v-if="gameMode === 'local'">
-        <PlayerTurn :current-player="currentPlayer" />
-        <div class="captures-panel">
-          <p class="cap-title">Prises</p>
-          <div class="cap-row">
-            <span class="cap-pip pip--white"></span>
-            <span class="cap-name">Blanc</span>
-            <div class="cap-dots">
-              <span v-for="i in whiteCaptured" :key="i" class="cap-dot dot--black"></span>
-            </div>
-            <span class="cap-count">{{ whiteCaptured }}</span>
-          </div>
-          <div class="cap-row">
-            <span class="cap-pip pip--black"></span>
-            <span class="cap-name">Noir</span>
-            <div class="cap-dots">
-              <span v-for="i in blackCaptured" :key="i" class="cap-dot dot--white"></span>
-            </div>
-            <span class="cap-count">{{ blackCaptured }}</span>
-          </div>
-        </div>
-        <button class="pause-btn" @click="togglePause">
-          {{ isPaused ? '▶ Reprendre' : '⏸ Pause' }}
-        </button>
-      </div>
     </div>
+
+    <!-- Strip joueur BLANC (bas) -->
+    <div class="player-strip" :class="{ 'strip-active': currentPlayer === 'white' }">
+      <div class="strip-left">
+        <div class="strip-dot dot-white"></div>
+        <span class="strip-name">Blanc</span>
+        <div class="strip-caps" v-if="whiteCaptured > 0">
+          <span class="strip-cap-count">+{{ whiteCaptured }}</span>
+          <span v-for="i in Math.min(whiteCaptured, 10)" :key="i" class="strip-pip pip--black"></span>
+        </div>
+      </div>
+      <PlayerTimer v-if="timerSeconds > 0" :time-remaining="whiteTime" color="white" :is-active="currentPlayer === 'white'" />
+    </div>
+
+    <!-- Barre de contrôles -->
+    <div class="controls-bar">
+      <div class="turn-badge" :class="currentPlayer">
+        {{ currentPlayer === 'white' ? '⬜ Tour : Blanc' : '⬛ Tour : Noir' }}
+      </div>
+      <button class="pause-btn" @click="togglePause">
+        {{ isPaused ? '▶ Reprendre' : '⏸ Pause' }}
+      </button>
+    </div>
+
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Game } from '../../engine/Game.js'
-import PlayerTurn from '../PlayerTurn.vue'
 import PlayerTimer from '../PlayerTimer.vue'
 
 const props = defineProps({
@@ -186,44 +186,101 @@ function handleCellClick(row, col) {
 </script>
 
 <style scoped>
-/* --- Configuration Globale --- */
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-.game-wrapper {
+/* ── Layout principal ─────────────────────────────────────────── */
+.game-layout {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  min-height: 100vh;
-  background-color: transparent;
-  padding: 10px;
+  flex: 1;
+  min-height: 0;
+  padding: 8px;
+  gap: 6px;
+}
+
+/* ── Strips joueur ────────────────────────────────────────────── */
+.player-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 800px;
+  padding: 8px 14px;
+  background: rgba(0,0,0,0.25);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.2s;
+}
+
+.player-strip.strip-active {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.15);
+}
+
+.strip-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   overflow: hidden;
 }
 
-/* --- Conteneur Principal (#444 de ton accueil) --- */
-.board-container {
-  display: flex;
-  align-items: center;
-  gap: 30px;
-  padding: 20px;
-  background-color: #444444; 
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+.strip-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.3);
+  flex-shrink: 0;
+}
+.dot-white { background: #e8e8e8; }
+.dot-black { background: #2a2a2a; border-color: rgba(255,255,255,0.5); }
+
+.strip-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.85);
+  white-space: nowrap;
 }
 
-/* --- LE PLATEAU (Structure Rows conservée) --- */
+.strip-caps {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.strip-cap-count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+}
+
+.strip-pip {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.2);
+}
+
+/* ── Zone plateau ─────────────────────────────────────────────── */
+.board-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  padding: 4px;
+}
+
 .board {
   display: inline-block;
   border: 5px solid #0a0a0a;
   position: relative;
-  background-color: #0a0a0a;
-}
-
-.board.paused {
-  position: relative;
+  background: #0a0a0a;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
 }
 
 .board.paused::after {
@@ -231,219 +288,140 @@ function handleCellClick(row, col) {
   position: absolute;
   inset: 0;
   backdrop-filter: blur(6px);
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0,0,0,0.4);
   z-index: 5;
 }
 
-.row {
-  display: flex; /* Aligne les 10 cases horizontalement */
-}
+.row { display: flex; }
 
 .cell {
-  width: clamp(28px, min(8vh, 8vw), 80px);
-  height: clamp(28px, min(8vh, 8vw), 80px);
+  width: clamp(30px, min(8.5vh, 9vw), 78px);
+  height: clamp(30px, min(8.5vh, 9vw), 78px);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
 }
 
-/* Case Sombre : Gris #262626 */
-.dark { 
-  background-color: #262626; 
-} 
+.dark  { background-color: #262626; }
+.light { background-color: #b0b0b0; }
 
-/* Case Claire : Gris #b0b0b0 */
-.light { 
-  background-color: #b0b0b0; 
-} 
-
-/* Indicateur de mouvement possible (Style Initial) */
 .shadowed::before {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  width: 45%;
-  height: 45%;
+  width: 42%; height: 42%;
   border-radius: 50%;
-  background-color: rgba(2, 2, 2, 0.5);
+  background: rgba(10,10,10,0.55);
   z-index: 1;
 }
 
-/* --- Pions : STYLE INITIAL COMPLET --- */
+/* ── Pions ────────────────────────────────────────────────────── */
 .piece {
-  width: 80%; 
-  height: 80%;
+  width: 82%;
+  height: 82%;
   border-radius: 50%;
-  border: 3px solid rgba(0,0,0,0.3);
-  box-shadow: inset 0 -4px 6px rgba(0,0,0,0.3), 2px 2px 4px rgba(0,0,0,0.4);
+  border: 3px solid rgba(0,0,0,0.25);
+  box-shadow: inset 0 -4px 6px rgba(0,0,0,0.3), 2px 3px 6px rgba(0,0,0,0.5);
   position: relative;
   z-index: 2;
-  transition: transform 0.2s ease;
+  transition: transform 0.15s ease;
+  cursor: pointer;
 }
 
-.piece.black { background: radial-gradient(circle at 35% 35%, #555, #111); }
-.piece.white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); }
+.piece.black {
+  background: radial-gradient(circle at 35% 35%, #8a8a8a, #2e2e2e);
+  border: 3px solid rgba(255,255,255,0.2);
+}
+.piece.white {
+  background: radial-gradient(circle at 35% 35%, #ffffff, #cccccc);
+  border: 3px solid rgba(0,0,0,0.15);
+}
 
 .piece.selected {
-  box-shadow: 0 0 12px 4px gold, inset 0 -4px 6px rgba(0,0,0,0.3);
-  transform: scale(1.1);
+  box-shadow: 0 0 0 3px gold, 0 0 14px 4px rgba(255,215,0,0.6), inset 0 -4px 6px rgba(0,0,0,0.3);
+  transform: scale(1.12);
 }
 
 .piece.mandatoryCapture {
-  box-shadow: 0 0 15px 6px #ff2200, inset 0 -4px 6px rgba(0,0,0,0.3), 2px 2px 4px rgba(0,0,0,0.4);
+  box-shadow: 0 0 0 3px #ff2200, 0 0 14px 4px rgba(255,34,0,0.5), inset 0 -4px 6px rgba(0,0,0,0.3);
   animation: captureGlow 0.6s ease-in-out infinite;
 }
 
 @keyframes captureGlow {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
+  50%       { transform: scale(1.08); }
 }
 
-/* --- Dames : STYLE INITIAL COMPLET --- */
 .piece.draught {
-  box-shadow: inset 0 -4px 6px rgba(0,0,0,0.3), 2px 2px 4px rgba(0,0,0,0.4), 0 0 0 4px rgba(255, 215, 0, 0.9), 0 0 15px rgba(255, 215, 0, 0.6);
-  border: 2px solid rgba(255, 215, 0, 0.7);
+  box-shadow: inset 0 -4px 6px rgba(0,0,0,0.3), 2px 2px 4px rgba(0,0,0,0.4),
+              0 0 0 3px rgba(255,215,0,0.9), 0 0 12px rgba(255,215,0,0.5);
+  border: 2px solid rgba(255,215,0,0.7);
 }
-
-.piece.draught::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 60%;
-  height: 60%;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 200, 0.8), transparent);
-  border-radius: 50%;
-  z-index: -1;
-}
-
 .piece.draught::after {
   content: '♛';
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 50%; left: 50%;
   transform: translate(-50%, -55%);
-  font-size: clamp(1rem, 3vh, 2.2rem);
-  color: rgba(255, 215, 0, 0.95);
-  text-shadow: 0 0 6px rgba(0, 0, 0, 0.7);
+  font-size: clamp(0.8rem, 2.5vmin, 2rem);
+  color: rgba(255,215,0,0.95);
+  text-shadow: 0 0 6px rgba(0,0,0,0.7);
 }
 
-/* --- UI Panel & Tour Dynamique --- */
-.right-panel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  min-width: 200px;
-}
-
-/* Style demandé pour l'indicateur de tour */
-.turn-indicator {
-  padding: 15px 25px;
-  border-radius: 12px;
-  font-weight: bold;
-  text-transform: uppercase;
-  text-align: center;
-  width: 100%;
-  transition: all 0.3s ease;
-}
-
-/* NOIR joue : Gris foncé #262626, Police blanche */
-.turn-indicator.black {
-  background-color: #262626;
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* BLANC joue : Blanc, Police gris foncé #262626 */
-.turn-indicator.white {
-  background-color: #ffffff;
-  color: #262626;
-  border: 1px solid #ccc;
-}
-
-.pause-btn {
-  width: 100%;
-  padding: 12px;
-  border-radius: 8px;
-  border: 2px solid #ff2200;
-  background: rgba(255, 34, 0, 0.2);
-  color: #ff2200;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.pause-btn:hover {
-  background: rgba(255, 34, 0, 0.4);
-}
-
+/* ── Pause overlay ────────────────────────────────────────────── */
 .pause-overlay {
   position: absolute;
   inset: 0;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 10; /* au-dessus du blur */
+  background: rgba(0,0,0,0.3);
+  z-index: 10;
 }
-
 .pause-text {
-  font-size: 3rem;
+  font-size: clamp(1.5rem, 6vw, 3rem);
   font-weight: bold;
   color: #ff2200;
   text-shadow: 0 0 20px #ff2200;
 }
 
-.timers-container {
+/* ── Barre de contrôles ───────────────────────────────────────── */
+.controls-bar {
   display: flex;
-  flex-direction: column;
-  gap: 40px;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 800px;
+  padding: 6px 10px;
+  gap: 0.8rem;
 }
 
-@media (max-width: 700px) {
-  .game-wrapper {
-    flex-direction: column;
-    padding: 6px;
-    gap: 8px;
-    min-height: unset;
-  }
-
-  .timers-container {
-    flex-direction: row;
-    gap: 12px;
-    width: 100%;
-    justify-content: center;
-  }
-
-  .board-container {
-    flex-direction: column;
-    padding: 10px;
-    gap: 10px;
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  .right-panel {
-    flex-direction: row;
-    min-width: unset;
-    width: 100%;
-    justify-content: center;
-    gap: 12px;
-  }
-
-  .pause-btn {
-    width: auto;
-    padding: 10px 20px;
-  }
+.turn-badge {
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  transition: all 0.25s;
 }
+.turn-badge.white { background: #d8d8d8; color: #262626; }
+.turn-badge.black { background: #262626; color: #d8d8d8; border: 1px solid rgba(255,255,255,0.15); }
 
-/* ── Game Over ──────────────────────────────────────────────── */
+.pause-btn {
+  padding: 6px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,34,0,0.5);
+  background: rgba(255,34,0,0.15);
+  color: #ff6b6b;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.pause-btn:hover { background: rgba(255,34,0,0.3); }
+
+/* ── Game Over ────────────────────────────────────────────────── */
 .gameover-overlay {
   position: fixed;
   inset: 0;
@@ -451,82 +429,68 @@ function handleCellClick(row, col) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0,0,0,0.65);
   backdrop-filter: blur(4px);
 }
 
 .gameover-card {
   background: #444;
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.7);
   padding: 2.5rem 3rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1.2rem;
   color: white;
+  width: min(90vw, 380px);
 }
 
 .gameover-crown {
   font-size: 3.5rem;
-  color: rgba(255, 215, 0, 0.95);
-  text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+  color: rgba(255,215,0,0.95);
+  text-shadow: 0 0 20px rgba(255,215,0,0.6);
   line-height: 1;
 }
 
 .gameover-title {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  text-align: center;
 }
 
 .gameover-scores {
   display: flex;
   align-items: center;
   gap: 1.2rem;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255,255,255,0.07);
   padding: 0.7rem 1.4rem;
   border-radius: 12px;
 }
 
-.gscore {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
+.gscore { display: flex; align-items: center; gap: 0.5rem; }
 
 .gscore-pip {
   display: inline-block;
-  width: 16px;
-  height: 16px;
+  width: 16px; height: 16px;
   border-radius: 50%;
-  border: 2px solid rgba(0, 0, 0, 0.3);
-  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(0,0,0,0.3);
+  box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3);
 }
 
-.gscore-label {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.gscore-val {
-  font-size: 1.3rem;
-  font-weight: 700;
-}
-
-.gscore-sep {
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 1.2rem;
-}
+.gscore-label { font-size: 0.9rem; color: rgba(255,255,255,0.6); }
+.gscore-val   { font-size: 1.3rem; font-weight: 700; }
+.gscore-sep   { color: rgba(255,255,255,0.3); font-size: 1.2rem; }
 
 .gameover-btn {
   margin-top: 0.4rem;
   padding: 0.75rem 2rem;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.35);
   color: white;
   font-size: 1rem;
   font-weight: 600;
@@ -534,75 +498,9 @@ function handleCellClick(row, col) {
   cursor: pointer;
   transition: background 0.2s;
 }
-.gameover-btn:hover { background: rgba(255, 255, 255, 0.25); }
-
-/* ── Captures Panel ─────────────────────────────────────────── */
-.captures-panel {
-  width: 100%;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
-  padding: 0.8rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.cap-title {
-  margin: 0 0 0.4rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.cap-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.cap-pip {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid rgba(0, 0, 0, 0.25);
-  box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.3);
-  flex-shrink: 0;
-}
-
-.cap-name {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
-  min-width: 2.8rem;
-}
-
-.cap-dots {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  flex: 1;
-}
-
-.cap-dot {
-  display: inline-block;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.cap-count {
-  font-size: 1rem;
-  font-weight: 700;
-  color: white;
-  min-width: 1.2rem;
-  text-align: right;
-}
+.gameover-btn:hover { background: rgba(255,255,255,0.25); }
 
 /* Shared piece colors */
-.pip--white, .dot--white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); }
-.pip--black, .dot--black { background: radial-gradient(circle at 35% 35%, #555, #111); }
+.pip--white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); }
+.pip--black { background: radial-gradient(circle at 35% 35%, #888, #333); }
 </style>

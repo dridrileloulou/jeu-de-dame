@@ -484,8 +484,8 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
 .row { display: flex; }
 
 .cell {
-  width: clamp(28px, min(7.5vh, 7.5vw), 72px);
-  height: clamp(28px, min(7.5vh, 7.5vw), 72px);
+  width: clamp(30px, min(8.5vh, 9vw), 78px);
+  height: clamp(30px, min(8.5vh, 9vw), 78px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -516,8 +516,8 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
   transition: transform 0.15s;
 }
 
-.piece.black  { background: radial-gradient(circle at 35% 35%, #555, #111); }
-.piece.white  { background: radial-gradient(circle at 35% 35%, #fff, #ccc); }
+.piece.black  { background: radial-gradient(circle at 35% 35%, #8a8a8a, #2e2e2e); border: 3px solid rgba(255,255,255,0.2); }
+.piece.white  { background: radial-gradient(circle at 35% 35%, #ffffff, #cccccc); border: 3px solid rgba(0,0,0,0.15); }
 .piece.locked { cursor: default; }
 
 .piece.selected {

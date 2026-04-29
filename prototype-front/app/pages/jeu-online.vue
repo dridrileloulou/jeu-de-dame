@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import NavMenu from '../components/NavMenu.vue'
+import GameBar from '../components/GameBar.vue'
 import GameBoardOnline from '../components/gameboard/GameBoardOnline.vue'
 
 const route  = useRoute()
@@ -62,7 +62,8 @@ async function joinGame() {
 
 <template>
   <div class="page">
-    <NavMenu />
+    <GameBar v-if="!code" title="Jouer en ligne" />
+    <GameBar v-else title="Partie en ligne" />
 
     <!-- ── Plateau en cours ────────────────────────────────────────────── -->
     <GameBoardOnline
