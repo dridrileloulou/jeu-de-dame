@@ -421,6 +421,8 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
   justify-content: center;
   gap: 0.8rem;
   padding: 1rem;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .side-panel {
@@ -484,9 +486,9 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
 .row { display: flex; }
 
 .cell {
-  /* desktop: account for right-panel (170px) + container+wrapper padding (260px total) */
-  width: clamp(30px, min(calc((100vw - 260px) / 10), calc((100vh - 250px) / 10)), 78px);
-  height: clamp(30px, min(calc((100vw - 260px) / 10), calc((100vh - 250px) / 10)), 78px);
+  /* desktop: right-panel(170) + gaps+padding(100) = 270px horiz; gamebar+strips+padding+border(270) vert */
+  width: clamp(30px, min(calc((100vw - 270px) / 10), calc((100dvh - 270px) / 10)), 78px);
+  height: clamp(30px, min(calc((100vw - 270px) / 10), calc((100dvh - 270px) / 10)), 78px);
   display: flex;
   align-items: center;
   justify-content: center;

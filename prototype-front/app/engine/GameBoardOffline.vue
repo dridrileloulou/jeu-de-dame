@@ -196,6 +196,7 @@ function handleCellClick(row, col) {
   justify-content: center;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
   padding: 8px;
   gap: 6px;
 }
@@ -295,9 +296,9 @@ function handleCellClick(row, col) {
 .row { display: flex; }
 
 .cell {
-  /* account for gamebar(46px) + strips(88px) + controls(40px) + padding/gaps(~55px) = 229px */
-  width: clamp(30px, min(calc((100vw - 36px) / 10), calc((100vh - 230px) / 10)), 78px);
-  height: clamp(30px, min(calc((100vw - 36px) / 10), calc((100vh - 230px) / 10)), 78px);
+  /* gamebar(46) + strips(88) + controls(40) + padding/gaps/border(76) = 250px */
+  width: clamp(30px, min(calc((100vw - 36px) / 10), calc((100dvh - 250px) / 10)), 78px);
+  height: clamp(30px, min(calc((100vw - 36px) / 10), calc((100dvh - 250px) / 10)), 78px);
   display: flex;
   align-items: center;
   justify-content: center;
