@@ -1,5 +1,5 @@
 <script setup>
-const emit = defineEmits(['open-auth', 'open-profile'])
+const emit = defineEmits(['open-auth', 'open-profile', 'open-admin'])
 const { loggedIn, user, clear } = useUserSession()
 </script>
 
@@ -16,6 +16,9 @@ const { loggedIn, user, clear } = useUserSession()
       </button>
 
       <div v-else class="user-info">
+        <button v-if="user?.isAdmin" class="btn-admin-pill" @click="emit('open-admin')">
+          ADMIN
+        </button>
         <button class="user-btn" @click="emit('open-profile')">
           <img
             :src="user?.picture ?? user?.avatar_url ?? ''"
@@ -128,5 +131,22 @@ const { loggedIn, user, clear } = useUserSession()
 
 .btn-signout:hover {
   background: rgba(80, 80, 80, 0.9);
+}
+
+.btn-admin-pill {
+  padding: calc(var(--pad-v, 0.6rem) * 0.45) 0.75rem;
+  background: rgba(230, 57, 70, 0.2);
+  color: #e63946;
+  border: 1px solid rgba(230, 57, 70, 0.45);
+  border-radius: 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-admin-pill:hover {
+  background: rgba(230, 57, 70, 0.38);
 }
 </style>

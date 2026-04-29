@@ -10,6 +10,7 @@ import RulesModal from '../components/index/RulesModal.vue'
 import BugModal from '../components/index/BugModal.vue'
 import SavedGamesModal from '../components/index/SavedGamesModal.vue'
 import ShopModal from '../components/index/ShopModal.vue'
+import AdminModal from '../components/index/AdminModal.vue'
 import FooterBar from '../components/index/FooterBar.vue'
 
 const { loggedIn, user, clear } = useUserSession()
@@ -39,13 +40,14 @@ const showBugModal = ref(false)
 
 const showSavedGamesModal = ref(false)
 const showShopModal = ref(false)
+const showAdminModal = ref(false)
 </script>
 
 <template>
   <div class="home">
 
     <!-- HEADER -->
-    <Header @open-auth="showAuthModal = true" @open-profile="openProfile" />
+    <Header @open-auth="showAuthModal = true" @open-profile="openProfile" @open-admin="showAdminModal = true" />
 
     <!-- CENTRE -->
     <GameModePanel
@@ -105,6 +107,12 @@ const showShopModal = ref(false)
     <ShopModal
       :show="showShopModal"
       @close="showShopModal = false"
+    />
+
+    <!-- POPUP ADMIN -->
+    <AdminModal
+      :show="showAdminModal"
+      @close="showAdminModal = false"
     />
 
   </div>
