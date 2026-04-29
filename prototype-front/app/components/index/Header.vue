@@ -149,4 +149,11 @@ const { loggedIn, user, clear } = useUserSession()
 .btn-admin-pill:hover {
   background: rgba(230, 57, 70, 0.38);
 }
+
+@media (max-width: 520px) {
+  .username { display: none; }
+  .btn-signout { display: none; }
+  .logo { font-size: clamp(1.1rem, 5vw, 2rem); }
+  .logo-img { width: clamp(32px, 10vw, 64px); }
+}
 </style>

@@ -161,7 +161,7 @@ const emit = defineEmits(['startIA', 'openAuth', 'openSavedGames', 'openShop'])
 /* ── BOUTONS CARRÉS SOMBRES ── */
 .square-buttons {
   display: flex;
-  gap: calc(var(--gap) * 6);;
+  gap: var(--gap);
   width: 100%;
   justify-content: center;
   max-width: 100%;

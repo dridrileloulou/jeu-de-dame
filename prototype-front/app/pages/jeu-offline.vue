@@ -202,10 +202,11 @@ body { overflow: hidden; }
 .board-wrap {
   flex: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   gap: 30px;
-  margin: 2rem 0;
-  margin-left: 100px;
+  margin: 1rem 0;
+  overflow: auto;
+  padding: 0 0.5rem;
 }
 </style>

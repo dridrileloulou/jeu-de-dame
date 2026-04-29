@@ -240,10 +240,8 @@ function handleCellClick(row, col) {
 }
 
 .cell {
-  /* On définit la taille en fonction de la hauteur de l'écran (vh) 
-     8vh * 10 cases = 80% de la hauteur de l'écran. Ça rentrera toujours. */
-  width: clamp(40px, 8vh, 80px);
-  height: clamp(40px, 8vh, 80px);
+  width: clamp(28px, min(8vh, 8vw), 80px);
+  height: clamp(28px, min(8vh, 8vw), 80px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -406,6 +404,43 @@ function handleCellClick(row, col) {
   display: flex;
   flex-direction: column;
   gap: 40px;
+}
+
+@media (max-width: 700px) {
+  .game-wrapper {
+    flex-direction: column;
+    padding: 6px;
+    gap: 8px;
+    min-height: unset;
+  }
+
+  .timers-container {
+    flex-direction: row;
+    gap: 12px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .board-container {
+    flex-direction: column;
+    padding: 10px;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .right-panel {
+    flex-direction: row;
+    min-width: unset;
+    width: 100%;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .pause-btn {
+    width: auto;
+    padding: 10px 20px;
+  }
 }
 
 /* ── Game Over ──────────────────────────────────────────────── */

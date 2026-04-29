@@ -484,8 +484,8 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
 .row { display: flex; }
 
 .cell {
-  width: clamp(38px, 7.5vh, 72px);
-  height: clamp(38px, 7.5vh, 72px);
+  width: clamp(28px, min(7.5vh, 7.5vw), 72px);
+  height: clamp(28px, min(7.5vh, 7.5vw), 72px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -645,4 +645,53 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
 /* Shared piece colors (also used in end-card + inline) */
 .pip--white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); }
 .pip--black { background: radial-gradient(circle at 35% 35%, #555, #111); }
+
+@media (max-width: 700px) {
+  .game-wrapper {
+    padding: 0.4rem;
+    gap: 0.4rem;
+  }
+
+  .side-panel {
+    padding: 0.4rem 0.6rem;
+    gap: 0.5rem;
+  }
+
+  .player-name { font-size: 0.8rem; }
+  .timer { font-size: 1rem; }
+
+  .board-container {
+    flex-direction: column;
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .right-panel {
+    flex-direction: row;
+    min-width: unset;
+    width: 100%;
+    gap: 0.6rem;
+  }
+
+  .turn-indicator {
+    flex: 1;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .btn-resign {
+    width: auto;
+    white-space: nowrap;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.8rem;
+  }
+
+  .waiting-card, .end-card {
+    padding: 1.8rem 1.5rem;
+    width: 90vw;
+    box-sizing: border-box;
+  }
+
+  .code-val { font-size: 1.5rem; }
+}
 </style>
