@@ -46,6 +46,8 @@ export class Board {
         this.board[piece.y][piece.x] = 0; // Empty the old spot
         piece.movePiece(newX, newY); // Tell the piece its new coordinates
         
+ 
+ 
         // Vérifier la promotion en dame
         if ((piece.color === 'white' && newY === 0) || (piece.color === 'black' && newY === 9)) {
             piece.promote();

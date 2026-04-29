@@ -56,173 +56,60 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { Board } from '../../engine/Board'
-import { Movement } from '../../engine/Movement'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { Game } from '../../engine/Game.js'
 import PlayerTurn from '../PlayerTurn.vue'
 import PlayerTimer from '../PlayerTimer.vue'
 
-const board = ref(null)
-const selected = ref(null)
-const validMoves = ref([])
-const boardUpdate = ref(0)  // Forcer le re-render
-const currentPlayer = ref('white')  // Blanc commence
-const whiteTime = ref(600)  // 10 minutes en secondes
-const blackTime = ref(600)  // 10 minutes en secondes
+const props = defineProps({
+  gameMode: { type: String, default: 'local' }
+})
+
+let game = null
+const rev = ref(0)           // incrémenté après chaque action pour forcer le re-render
+const currentPlayer = ref('white')
+const whiteTime = ref(600)
+const blackTime = ref(600)
 const isPaused = ref(false)
-const mandatoryCapturePositions = ref([])  // Pions qui doivent capturer
 let timerInterval = null
 
-const props = defineProps({
-  gameMode: {
-    type: String,
-    default: 'local'
-  }
-})
-
-// Écouter les changements de joueur pour mettre à jour les positions de capture obligatoire
-watch(() => currentPlayer.value, () => {
-  updateMandatoryCapturePositions()
-})
-
-function updateMandatoryCapturePositions() {
-  if (!board.value) return
-  
-  const legalMoves = Movement.getLegalMovesForPlayer(board.value, currentPlayer.value)
-  const capturePositions = new Set()
-  const hasAnyCapture = legalMoves.some(m => m.type === 'capture')
-  
-  if (hasAnyCapture) {
-    legalMoves.forEach(m => {
-      if (m.type === 'capture') {
-        capturePositions.add(`${m.from.x}_${m.from.y}`)
-      }
-    })
-  }
-  mandatoryCapturePositions.value = Array.from(capturePositions)
-}
-
 onMounted(() => {
-  board.value = new Board()
-  updateMandatoryCapturePositions()
+  game = new Game()
   startTimer()
 })
 
-onUnmounted(() => {
-  if (timerInterval) clearInterval(timerInterval)
-})
+onUnmounted(() => { if (timerInterval) clearInterval(timerInterval) })
 
 function startTimer() {
   timerInterval = setInterval(() => {
     if (isPaused.value || props.gameMode !== 'local') return
-    
-    if (currentPlayer.value === 'white' && whiteTime.value > 0) {
-      whiteTime.value--
-    } else if (currentPlayer.value === 'black' && blackTime.value > 0) {
-      blackTime.value--
-    }
+    if (currentPlayer.value === 'white' && whiteTime.value > 0) whiteTime.value--
+    else if (currentPlayer.value === 'black' && blackTime.value > 0) blackTime.value--
   }, 1000)
 }
 
-function togglePause() {
-  isPaused.value = !isPaused.value
-}
+function togglePause() { isPaused.value = !isPaused.value }
 
-function getPieceAt(x, y) {
-  if (!board.value) return null
-  const piece = board.value.getPiece(x, y)
-  return piece === 0 ? null : piece
-}
+// Les fonctions ci-dessous lisent rev.value pour créer une dépendance réactive
+function getPieceAt(x, y)         { rev.value; return game?.getPiece(x, y) ?? null }
+function isSelected(row, col)     { rev.value; return game?.isSelected(row, col) ?? false }
+function isValidMove(row, col)    { rev.value; return game?.isValidMove(row, col) ?? false }
+function isMandatoryCapture(r, c) { rev.value; return game?.isMandatory(r, c) ?? false }
 
 function selectPiece(row, col) {
-  const piece = getPieceAt(col, row)
-  if (!piece) return
-  
-  // Vérifier que c'est le tour du joueur dont on sélectionne le pion
-  if (piece.color !== currentPlayer.value) {
-    console.log(`C'est au tour de ${currentPlayer.value}!`)
-    return
-  }
-  
-  // Si il y a des captures obligatoires, vérifier que ce pion en fait partie
-  if (mandatoryCapturePositions.value.length > 0 && !mandatoryCapturePositions.value.includes(`${col}_${row}`)) {
-    console.log(`Ce pion doit capturer!`)
-    return
-  }
-  
-  selected.value = { row, col }
-  // Utiliser getLegalMovesForPlayer pour forcer les captures si elles existent
-  const legalMoves = Movement.getLegalMovesForPlayer(board.value, piece.color)
-  validMoves.value = legalMoves.filter(m => m.from.x === col && m.from.y === row)
-  console.log(`Pion sélectionné: Row ${row}, Col ${col}`, piece)
-}
-
-function isSelected(row, col) {
-  return selected.value?.row === row && selected.value?.col === col
-}
-
-function isMandatoryCapture(row, col) {
-  return mandatoryCapturePositions.value.includes(`${col}_${row}`)
-}
-
-function isValidMove(row, col) {
-  return validMoves.value.some(m => m.x === col && m.y === row)
+  if (!game) return
+  game.selectPiece(row, col)
+  rev.value++
 }
 
 function handleCellClick(row, col) {
-  if (isPaused.value) return
-  
-  if (isValidMove(row, col)) {
-    movePiece(row, col)
+  if (isPaused.value || !game) return
+  if (game.isValidMove(row, col)) {
+    const result = game.executeMove(row, col)
+    if (result) { currentPlayer.value = result.nextPlayer; rev.value++ }
   } else {
     selectPiece(row, col)
   }
-}
-
-function movePiece(toRow, toCol) {
-  if (!selected.value) return
-  
-  const piece = getPieceAt(selected.value.col, selected.value.row)
-  if (!piece) return
-  
-  // Trouver le mouvement dans validMoves pour vérifier si c'est une capture
-  const moveData = validMoves.value.find(m => m.x === toCol && m.y === toRow)
-  
-  // Effectuer le mouvement
-  board.value.movePiece(piece, toCol, toRow)
-  
-  // Si c'est une capture, enlever le pion capturé
-  if (moveData && moveData.type === 'capture') {
-    const capturedPiece = board.value.getPiece(moveData.capturedX, moveData.capturedY)
-    if (capturedPiece !== 0) {
-      board.value.setPiece(moveData.capturedX, moveData.capturedY, 0)
-      console.log(`Pion ${capturedPiece.color} capturé!`)
-    }
-    
-    // Raffle: vérifier si le pion peut capturer à nouveau
-    const updatedPiece = board.value.getPiece(toCol, toRow)
-    const legalMoves = Movement.getLegalMovesForPlayer(board.value, updatedPiece.color)
-    const nextCaptures = legalMoves.filter(m => m.from.x === toCol && m.from.y === toRow && m.type === 'capture')
-    
-    if (nextCaptures.length > 0) {
-      // Raffle possible! Garder ce pion sélectionné
-      selected.value = { row: toRow, col: toCol }
-      validMoves.value = nextCaptures
-      mandatoryCapturePositions.value = [`${toCol}_${toRow}`]
-      boardUpdate.value++
-      console.log(`Raffle possible! Le pion à (${toCol}, ${toRow}) doit capturer à nouveau`)
-      return
-    }
-  }
-  
-  selected.value = null
-  validMoves.value = []
-  mandatoryCapturePositions.value = []
-  boardUpdate.value++  // Force le re-render
-  
-  // Basculer au joueur suivant
-  currentPlayer.value = currentPlayer.value === 'white' ? 'black' : 'white'
-  console.log(`Pion déplacé vers: Row ${toRow}, Col ${toCol}. C'est au tour de ${currentPlayer.value}`)
 }
 </script>
 

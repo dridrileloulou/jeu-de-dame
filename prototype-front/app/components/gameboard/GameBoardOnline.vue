@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Board } from '../../engine/Board.js'
-import { Movement } from '../../engine/Movement.js'
+import { Game } from '../../engine/Game.js'
 
 const props = defineProps({
   code:     { type: String, required: true },
@@ -14,15 +13,12 @@ let ws = null
 const status = ref('connecting') // connecting | waiting | playing | finished | error
 
 // ── État jeu ──────────────────────────────────────────────────────────────
-const myColor      = ref(null)          // 'white' | 'black'
-const winner       = ref(null)
-const endReason    = ref(null)
-const board        = ref(null)
-const selected     = ref(null)
-const validMoves   = ref([])
-const boardUpdate  = ref(0)
-const currentPlayer= ref('white')
-const mandatoryPos = ref([])
+const myColor       = ref(null)          // 'white' | 'black'
+const winner        = ref(null)
+const endReason     = ref(null)
+const currentPlayer = ref('white')
+const rev           = ref(0)            // déclencheur de re-render
+let game = null
 
 // ── Timers ────────────────────────────────────────────────────────────────
 const timerSecs  = ref(0)
@@ -82,8 +78,9 @@ function connect() {
       timerSecs.value = d.timerSeconds
       whiteTime.value = d.timerSeconds
       blackTime.value = d.timerSeconds
-      board.value     = new Board()
-      updateMandatory()
+      game            = new Game()
+      currentPlayer.value = 'white'
+      rev.value++
       status.value    = 'playing'
       if (d.timerSeconds > 0) startTimer()
     }
@@ -128,94 +125,41 @@ function stopTimer() { if (timerInterval) { clearInterval(timerInterval); timerI
 function sendMsg(obj) { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj)) }
 
 // ── Logique plateau ───────────────────────────────────────────────────────
-function updateMandatory() {
-  if (!board.value) return
-  const moves = Movement.getLegalMovesForPlayer(board.value, currentPlayer.value)
-  const set   = new Set()
-  if (moves.some(m => m.type === 'capture'))
-    moves.forEach(m => { if (m.type === 'capture') set.add(`${m.from.x}_${m.from.y}`) })
-  mandatoryPos.value = [...set]
-}
 
-function getPiece(x, y) {
-  if (!board.value) return null
-  const p = board.value.getPiece(x, y)
-  return p === 0 || p == null ? null : p
-}
+function getPiece(x, y)          { rev.value; return game?.getPiece(x, y) ?? null }
+function isSelected(row, col)    { rev.value; return game?.isSelected(row, col) ?? false }
+function isMandatory(row, col)   { rev.value; return game?.isMandatory(row, col) ?? false }
+function isValidTarget(row, col) { rev.value; return game?.isValidMove(row, col) ?? false }
 
-// row/col = coordonnées réelles du plateau (pas visuelles)
 function selectPiece(row, col) {
-  if (!isMyTurn.value) return
-  const piece = getPiece(col, row)
-  if (!piece || piece.color !== myColor.value) return
-  if (mandatoryPos.value.length > 0 && !mandatoryPos.value.includes(`${col}_${row}`)) return
-  selected.value    = { row, col }
-  const legal = Movement.getLegalMovesForPlayer(board.value, piece.color)
-  validMoves.value  = legal.filter(m => m.from.x === col && m.from.y === row)
+  if (!isMyTurn.value || !game) return
+  game.selectPiece(row, col, myColor.value)
+  rev.value++
 }
-
-function isSelected(row, col)      { return selected.value?.row === row && selected.value?.col === col }
-function isMandatory(row, col)     { return mandatoryPos.value.includes(`${col}_${row}`) }
-function isValidTarget(row, col)   { return validMoves.value.some(m => m.x === col && m.y === row) }
 
 function onCellClick(row, col) {
-  if (!isMyTurn.value) return
-  if (isValidTarget(row, col)) move(row, col)
+  if (!isMyTurn.value || !game) return
+  if (game.isValidMove(row, col)) move(row, col)
   else selectPiece(row, col)
 }
 
 function move(toRow, toCol) {
-  if (!selected.value || !isMyTurn.value) return
-  const fromX = selected.value.col
-  const fromY = selected.value.row
-  const piece = getPiece(fromX, fromY)
-  if (!piece) return
+  if (!isMyTurn.value || !game) return
+  const result = game.executeMove(toRow, toCol)
+  if (!result) return
 
-  const md = validMoves.value.find(m => m.x === toCol && m.y === toRow)
-  board.value.movePiece(piece, toCol, toRow)
+  sendMsg({ type: 'move', code: props.code, from: result.from, to: result.to, captured: result.captured, continuation: result.continuation, nextPlayer: result.nextPlayer })
 
-  let captured = null
-  if (md?.type === 'capture') {
-    const cap = board.value.getPiece(md.capturedX, md.capturedY)
-    if (cap && cap !== 0) board.value.setPiece(md.capturedX, md.capturedY, 0)
-    captured = { x: md.capturedX, y: md.capturedY }
-
-    // Vérifier raffle
-    const updated   = board.value.getPiece(toCol, toRow)
-    const nextLegal = Movement.getLegalMovesForPlayer(board.value, updated.color)
-    const nextCaps  = nextLegal.filter(m => m.from.x === toCol && m.from.y === toRow && m.type === 'capture')
-
-    if (nextCaps.length > 0) {
-      selected.value   = { row: toRow, col: toCol }
-      validMoves.value = nextCaps
-      mandatoryPos.value = [`${toCol}_${toRow}`]
-      boardUpdate.value++
-      sendMsg({ type: 'move', code: props.code, from: { x: fromX, y: fromY }, to: { x: toCol, y: toRow }, captured, continuation: true, nextPlayer: myColor.value })
-      return
-    }
-  }
-
-  const next = currentPlayer.value === 'white' ? 'black' : 'white'
-  sendMsg({ type: 'move', code: props.code, from: { x: fromX, y: fromY }, to: { x: toCol, y: toRow }, captured, continuation: false, nextPlayer: next })
-
-  selected.value     = null
-  validMoves.value   = []
-  mandatoryPos.value = []
-  boardUpdate.value++
-  currentPlayer.value = next
-  updateMandatory()
+  if (!result.continuation) currentPlayer.value = result.nextPlayer
+  rev.value++
 }
 
-// Appliquer le coup reçu (coup de l'adversaire)
+// Appliquer le coup reçu de l'adversaire
 function applyMove(d) {
-  if (!board.value) return
-  const piece = getPiece(d.from.x, d.from.y)
-  if (!piece) return
-  board.value.movePiece(piece, d.to.x, d.to.y)
-  if (d.captured) board.value.setPiece(d.captured.x, d.captured.y, 0)
-  boardUpdate.value++
+  if (!game) return
+  game.applyMove(d.from, d.to, d.captured, d.continuation, d.nextPlayer)
   if (!d.continuation) currentPlayer.value = d.nextPlayer
-  updateMandatory()
+  rev.value++
 }
 
 onMounted(connect)
