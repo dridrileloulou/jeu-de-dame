@@ -159,6 +159,13 @@ async function joinGame() {
 body { overflow: hidden; }
 </style>
 
+<style>
+/* allow scroll on very small screens */
+@media (max-height: 600px) {
+  body { overflow: auto; }
+}
+</style>
+
 <style scoped>
 .page {
   min-height: 100vh;
@@ -176,6 +183,7 @@ body { overflow: hidden; }
   align-items: center;
   justify-content: center;
   padding: 2rem;
+  overflow-y: auto;
 }
 
 /* ── Modal ── */
@@ -345,5 +353,15 @@ body { overflow: hidden; }
   color: #ff6b6b;
   font-size: 0.88rem;
   margin: -0.5rem 0 0;
+}
+
+@media (max-width: 480px) {
+  .backdrop { padding: 1rem 0.75rem; align-items: flex-start; padding-top: 1.5rem; }
+  .modal { padding: 1.5rem 1.2rem; gap: 1rem; }
+  .modal-title { font-size: 1.1rem; }
+  .pill { min-width: 56px; font-size: 0.8rem; padding: 0.4rem 0.4rem; }
+  .code-input { font-size: 1.2rem; padding: 0.6rem 0.7rem; letter-spacing: 0.15em; }
+  .btn-launch { padding: 0.65rem 1rem; font-size: 0.92rem; }
+  .field-label { font-size: 0.72rem; }
 }
 </style>

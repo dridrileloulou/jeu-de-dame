@@ -295,8 +295,9 @@ function handleCellClick(row, col) {
 .row { display: flex; }
 
 .cell {
-  width: clamp(30px, min(8.5vh, 9vw), 78px);
-  height: clamp(30px, min(8.5vh, 9vw), 78px);
+  /* account for gamebar(46px) + strips(88px) + controls(40px) + padding/gaps(~55px) = 229px */
+  width: clamp(30px, min(calc((100vw - 36px) / 10), calc((100vh - 230px) / 10)), 78px);
+  height: clamp(30px, min(calc((100vw - 36px) / 10), calc((100vh - 230px) / 10)), 78px);
   display: flex;
   align-items: center;
   justify-content: center;

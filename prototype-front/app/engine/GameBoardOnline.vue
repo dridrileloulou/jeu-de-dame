@@ -484,8 +484,9 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
 .row { display: flex; }
 
 .cell {
-  width: clamp(30px, min(8.5vh, 9vw), 78px);
-  height: clamp(30px, min(8.5vh, 9vw), 78px);
+  /* desktop: account for right-panel (170px) + container+wrapper padding (260px total) */
+  width: clamp(30px, min(calc((100vw - 260px) / 10), calc((100vh - 250px) / 10)), 78px);
+  height: clamp(30px, min(calc((100vw - 260px) / 10), calc((100vh - 250px) / 10)), 78px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -648,22 +649,30 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
 
 @media (max-width: 700px) {
   .game-wrapper {
-    padding: 0.4rem;
-    gap: 0.4rem;
+    padding: 0.3rem;
+    gap: 0.3rem;
+    justify-content: flex-start;
   }
 
   .side-panel {
-    padding: 0.4rem 0.6rem;
-    gap: 0.5rem;
+    padding: 0.35rem 0.6rem;
+    gap: 0.4rem;
+    max-width: 100%;
   }
 
-  .player-name { font-size: 0.8rem; }
-  .timer { font-size: 1rem; }
+  .player-name { font-size: 0.78rem; }
+  .timer { font-size: 0.95rem; }
 
   .board-container {
     flex-direction: column;
-    padding: 8px;
-    gap: 8px;
+    padding: 6px;
+    gap: 6px;
+  }
+
+  /* mobile: right-panel below, no horizontal overhead from it */
+  .cell {
+    width: min(calc((100vw - 36px) / 10), calc((100dvh - 230px) / 10));
+    height: min(calc((100vw - 36px) / 10), calc((100dvh - 230px) / 10));
   }
 
   .right-panel {
@@ -675,15 +684,15 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
 
   .turn-indicator {
     flex: 1;
-    padding: 0.6rem 0.5rem;
-    font-size: 0.8rem;
+    padding: 0.5rem 0.5rem;
+    font-size: 0.78rem;
   }
 
   .btn-resign {
     width: auto;
     white-space: nowrap;
-    padding: 0.6rem 0.8rem;
-    font-size: 0.8rem;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.78rem;
   }
 
   .waiting-card, .end-card {
