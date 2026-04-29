@@ -36,7 +36,7 @@ const emit = defineEmits(['startIA', 'openAuth', 'openSavedGames', 'openShop'])
           🔒 Connectez-vous pour jouer en ligne ou contre une IA
         </p>
 
-        <NuxtLink to="/jeu-offline" class="btn-mode">
+        <NuxtLink to="/jeu-offline" class="btn-mode btn-offline">
           <span class="btn-icon">👥</span>
           Jouer contre un ami
         </NuxtLink>
@@ -200,5 +200,9 @@ const emit = defineEmits(['startIA', 'openAuth', 'openSavedGames', 'openShop'])
 .square-label {
   font-size: var(--fs-base);
   font-weight: 500;
+}
+
+@media (max-width: 700px) {
+  .btn-offline { display: none; }
 }
 </style>
