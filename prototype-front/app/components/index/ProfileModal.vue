@@ -1,16 +1,34 @@
 <script setup>
-defineProps({
-  show: {
-    type: Boolean,
-    default: false
-  },
-  user: {
-    type: Object,
-    default: null
-  }
+import { ref, watch, computed } from 'vue'
+
+const props = defineProps({
+  show: { type: Boolean, default: false },
+  user: { type: Object,  default: null  }
 })
 
 const emit = defineEmits(['close'])
+
+const stats = ref(null)
+
+watch(() => props.show, async (v) => {
+  if (v) {
+    try { stats.value = await $fetch('/api/stats') } catch { stats.value = null }
+  }
+})
+
+const totalPlayed = computed(() => (stats.value?.online?.played ?? 0) + (stats.value?.ia?.played ?? 0))
+const totalWins   = computed(() => (stats.value?.online?.wins   ?? 0) + (stats.value?.ia?.wins   ?? 0))
+const totalLosses = computed(() => (stats.value?.online?.losses ?? 0) + (stats.value?.ia?.losses ?? 0))
+const winRate     = computed(() => totalPlayed.value > 0 ? Math.round(totalWins.value / totalPlayed.value * 100) : 0)
+
+const COLORS = ['#e74c3c','#e67e22','#f39c12','#2ecc71','#1abc9c','#3498db','#9b59b6','#8e44ad']
+function nameColor(name) {
+  let h = 0
+  for (const c of (name ?? '')) h = (h * 31 + c.charCodeAt(0)) & 0x7fffffff
+  return COLORS[h % COLORS.length]
+}
+const avatarColor  = computed(() => nameColor(props.user?.name))
+const avatarLetter = computed(() => (props.user?.name ?? '?')[0].toUpperCase())
 </script>
 
 <template>
@@ -20,10 +38,16 @@ const emit = defineEmits(['close'])
 
       <div class="profile-header">
         <img
-          :src="user?.picture ?? user?.avatar_url ?? ''"
+          v-if="user?.picture"
+          :src="user.picture"
           :alt="user?.name ?? ''"
           class="profile-avatar"
         />
+        <div
+          v-else
+          class="profile-avatar profile-avatar--letter"
+          :style="{ background: avatarColor }"
+        >{{ avatarLetter }}</div>
         <div>
           <p class="profile-name">{{ user?.name }}</p>
           <p class="profile-email">{{ user?.email }}</p>
@@ -32,27 +56,27 @@ const emit = defineEmits(['close'])
 
       <div class="profile-stats">
         <div class="stat-card">
-          <span class="stat-value">—</span>
+          <span class="stat-value">{{ totalPlayed }}</span>
           <span class="stat-label">Parties jouées</span>
         </div>
         <div class="stat-card">
-          <span class="stat-value">—</span>
+          <span class="stat-value">{{ totalWins }}</span>
           <span class="stat-label">Victoires</span>
         </div>
         <div class="stat-card">
-          <span class="stat-value">—</span>
+          <span class="stat-value">{{ totalLosses }}</span>
           <span class="stat-label">Défaites</span>
         </div>
         <div class="stat-card">
-          <span class="stat-value">—</span>
-          <span class="stat-label">Nuls</span>
+          <span class="stat-value">{{ stats?.online?.played ?? 0 }}</span>
+          <span class="stat-label">En ligne</span>
         </div>
         <div class="stat-card stat-card--wide">
-          <span class="stat-value">—%</span>
+          <span class="stat-value">{{ winRate }}%</span>
           <span class="stat-label">Taux de victoire</span>
         </div>
         <div class="stat-card stat-card--wide">
-          <span class="stat-value">—</span>
+          <span class="stat-value">{{ user?.elo ?? 1000 }}</span>
           <span class="stat-label">Classement ELO</span>
         </div>
       </div>
@@ -119,6 +143,17 @@ const emit = defineEmits(['close'])
   border: 2px solid rgba(255, 255, 255, 0.4);
   object-fit: cover;
   flex-shrink: 0;
+}
+
+.profile-avatar--letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(1.3rem, calc(var(--cell) * 0.38), 2.2rem);
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  user-select: none;
 }
 
 .profile-name {

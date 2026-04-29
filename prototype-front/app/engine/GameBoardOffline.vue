@@ -2,8 +2,9 @@
   <!-- Game Over -->
   <div v-if="winner" class="gameover-overlay">
     <div class="gameover-card">
-      <div class="gameover-crown">♛</div>
-      <h2 class="gameover-title">{{ winner === 'white' ? 'Blanc' : 'Noir' }} a gagné !</h2>
+      <div class="gameover-icon">🏆</div>
+      <h2 class="gameover-title">{{ winner === 'white' ? 'Les Blancs gagnent !' : 'Les Noirs gagnent !' }}</h2>
+      <p class="gameover-reason">{{ winner === 'white' ? 'Les Noirs n\'ont plus de pions' : 'Les Blancs n\'ont plus de pions' }}</p>
       <div class="gameover-scores">
         <div class="gscore">
           <span class="gscore-pip pip--white"></span>
@@ -17,7 +18,10 @@
           <span class="gscore-val">{{ blackCaptured }}</span>
         </div>
       </div>
-      <button class="gameover-btn" @click="resetGame">Rejouer</button>
+      <div class="gameover-btns">
+        <button class="gameover-btn gameover-btn--secondary" @click="resetGame">Rejouer</button>
+        <NuxtLink to="/" class="gameover-btn">← Accueil</NuxtLink>
+      </div>
     </div>
   </div>
 
@@ -449,11 +453,22 @@ function handleCellClick(row, col) {
   width: min(90vw, 380px);
 }
 
-.gameover-crown {
+.gameover-icon {
   font-size: 3.5rem;
-  color: rgba(255,215,0,0.95);
-  text-shadow: 0 0 20px rgba(255,215,0,0.6);
   line-height: 1;
+}
+
+.gameover-reason {
+  margin: -0.5rem 0 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+}
+
+.gameover-btns {
+  display: flex;
+  gap: 0.7rem;
+  margin-top: 0.2rem;
 }
 
 .gameover-title {
@@ -489,7 +504,6 @@ function handleCellClick(row, col) {
 .gscore-sep   { color: rgba(255,255,255,0.3); font-size: 1.2rem; }
 
 .gameover-btn {
-  margin-top: 0.4rem;
   padding: 0.75rem 2rem;
   background: rgba(255,255,255,0.12);
   border: 1px solid rgba(255,255,255,0.35);
@@ -501,6 +515,22 @@ function handleCellClick(row, col) {
   transition: background 0.2s;
 }
 .gameover-btn:hover { background: rgba(255,255,255,0.25); }
+.gameover-btn--secondary {
+  background: transparent;
+  border-color: rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.6);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.gameover-btn--secondary:hover { background: rgba(255,255,255,0.1); color: white; }
+
+/* NuxtLink used as button */
+a.gameover-btn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
 
 /* Shared piece colors */
 .pip--white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); }

@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
 
   const { timer, customSeconds, creatorColor } = await readBody(event)
 
-  const room = createRoom(session.user.id, {
+  const room = createRoom(session.user.id, session.user.name, {
     timer: timer || 'none',
     customSeconds: customSeconds ? Number(customSeconds) : undefined,
     creatorColor: creatorColor || 'random'

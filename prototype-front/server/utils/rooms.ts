@@ -10,7 +10,9 @@ export interface RoomParams {
 export interface Room {
   code: string
   creatorId: string
+  creatorName: string
   joinerId?: string
+  joinerName?: string
   params: RoomParams
   creatorColor?: 'white' | 'black'
   joinerColor?: 'white' | 'black'
@@ -29,10 +31,10 @@ function generateCode(): string {
   return code
 }
 
-export function createRoom(creatorId: string, params: RoomParams): Room {
+export function createRoom(creatorId: string, creatorName: string, params: RoomParams): Room {
   let code: string
   do { code = generateCode() } while (rooms.has(code))
-  const room: Room = { code, creatorId, params, status: 'waiting', createdAt: Date.now() }
+  const room: Room = { code, creatorId, creatorName, params, status: 'waiting', createdAt: Date.now() }
   rooms.set(code, room)
   setTimeout(() => rooms.delete(code), 2 * 60 * 60 * 1000)
   return room

@@ -7,7 +7,19 @@ const userSchema = new mongoose.Schema({
   googleId: { type: String },
   picture:  { type: String },
   elo:      { type: Number, default: 1000 },
-  isAdmin:  { type: Boolean, default: false }
+  isAdmin:  { type: Boolean, default: false },
+  stats: {
+    online: {
+      played: { type: Number, default: 0 },
+      wins:   { type: Number, default: 0 },
+      losses: { type: Number, default: 0 }
+    },
+    ia: {
+      played: { type: Number, default: 0 },
+      wins:   { type: Number, default: 0 },
+      losses: { type: Number, default: 0 }
+    }
+  }
 }, { timestamps: true })
 
 export const User = mongoose.models.User || mongoose.model('User', userSchema)

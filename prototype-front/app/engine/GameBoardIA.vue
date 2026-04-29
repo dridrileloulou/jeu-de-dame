@@ -4,8 +4,9 @@
     <!-- Game Over Overlay -->
     <div v-if="winner" class="gameover-overlay">
       <div class="gameover-card">
-        <div class="gameover-crown">♛</div>
-        <h2 class="gameover-title">{{ winner === 'white' ? 'Blanc' : 'Noir' }} a gagné !</h2>
+        <div class="gameover-icon">{{ winner === 'white' ? '🏆' : '🤖' }}</div>
+        <h2 class="gameover-title">{{ winner === 'white' ? 'Vous avez gagné !' : "L'IA a gagné !" }}</h2>
+        <p class="gameover-reason">{{ winner === 'white' ? "L'IA n'a plus de pions" : "Vous n'avez plus de pions" }}</p>
         <div class="gameover-scores">
           <div class="gscore">
             <span class="gscore-pip pip--white"></span>
@@ -19,7 +20,10 @@
             <span class="gscore-val">{{ blackCaptured }}</span>
           </div>
         </div>
-        <button class="gameover-btn" @click="resetGame">Rejouer</button>
+        <div class="gameover-btns">
+          <button class="gameover-btn gameover-btn--secondary" @click="resetGame">Rejouer</button>
+          <NuxtLink to="/" class="gameover-btn">← Accueil</NuxtLink>
+        </div>
       </div>
     </div>
 
@@ -171,7 +175,7 @@ function handleCellClick(row, col) {
         currentPlayer.value = result.nextPlayer
         rev.value++
         const w = game.checkWinner()
-        if (w) winner.value = w
+        if (w) { winner.value = w; recordStat(w) }
       } else {
         rev.value++
       }
@@ -179,6 +183,15 @@ function handleCellClick(row, col) {
   } else {
     selectPiece(row, col)
   }
+}
+
+async function recordStat(winnerColor) {
+  try {
+    await $fetch('/api/stats/record', {
+      method: 'POST',
+      body: { mode: 'ia', result: winnerColor === 'white' ? 'win' : 'loss' }
+    })
+  } catch {}
 }
 </script>
 
@@ -430,11 +443,21 @@ function handleCellClick(row, col) {
   color: white;
 }
 
-.gameover-crown {
+.gameover-icon {
   font-size: 3.5rem;
-  color: rgba(255, 215, 0, 0.95);
-  text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
   line-height: 1;
+}
+
+.gameover-reason {
+  margin: -0.5rem 0 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.gameover-btns {
+  display: flex;
+  gap: 0.7rem;
+  margin-top: 0.2rem;
 }
 
 .gameover-title {
@@ -485,7 +508,6 @@ function handleCellClick(row, col) {
 }
 
 .gameover-btn {
-  margin-top: 0.4rem;
   padding: 0.75rem 2rem;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.35);
@@ -495,8 +517,21 @@ function handleCellClick(row, col) {
   border-radius: 10px;
   cursor: pointer;
   transition: background 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
 .gameover-btn:hover { background: rgba(255, 255, 255, 0.25); }
+.gameover-btn--secondary {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.6);
+}
+.gameover-btn--secondary:hover { background: rgba(255, 255, 255, 0.1); color: white; }
+
+@media (max-width: 700px) {
+  .right-panel { display: none; }
+}
 
 /* ── Captures Panel ─────────────────────────────────────────── */
 .captures-panel {

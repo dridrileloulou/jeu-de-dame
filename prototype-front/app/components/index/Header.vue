@@ -1,6 +1,17 @@
 <script setup>
+import { computed } from 'vue'
+
 const emit = defineEmits(['open-auth', 'open-profile', 'open-admin'])
 const { loggedIn, user, clear } = useUserSession()
+
+const COLORS = ['#e74c3c','#e67e22','#f39c12','#2ecc71','#1abc9c','#3498db','#9b59b6','#8e44ad']
+function nameColor(name) {
+  let h = 0
+  for (const c of (name ?? '')) h = (h * 31 + c.charCodeAt(0)) & 0x7fffffff
+  return COLORS[h % COLORS.length]
+}
+const avatarColor  = computed(() => nameColor(user.value?.name))
+const avatarLetter = computed(() => (user.value?.name ?? '?')[0]?.toUpperCase() ?? '?')
 </script>
 
 <template>
@@ -21,10 +32,16 @@ const { loggedIn, user, clear } = useUserSession()
         </button>
         <button class="user-btn" @click="emit('open-profile')">
           <img
-            :src="user?.picture ?? user?.avatar_url ?? ''"
+            v-if="user?.picture"
+            :src="user.picture"
             :alt="user?.name ?? ''"
             class="avatar"
           />
+          <div
+            v-else
+            class="avatar avatar--letter"
+            :style="{ background: avatarColor }"
+          >{{ avatarLetter }}</div>
           <span class="username">{{ user?.name }}</span>
         </button>
         <button class="btn-signout" @click="clear()">Déconnexion</button>
@@ -111,6 +128,18 @@ const { loggedIn, user, clear } = useUserSession()
   border-radius: 50%;
   border: 2px solid rgba(255,255,255,0.5);
   object-fit: cover;
+}
+
+.avatar--letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(0.9rem, calc(var(--cell) * 0.26), 1.5rem);
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  user-select: none;
+  flex-shrink: 0;
 }
 
 .username {

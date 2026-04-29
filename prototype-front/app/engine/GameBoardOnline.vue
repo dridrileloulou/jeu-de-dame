@@ -20,6 +20,8 @@ const currentPlayer = ref('white')
 const rev           = ref(0)            // déclencheur de re-render
 const whiteCaptured = ref(0)
 const blackCaptured = ref(0)
+const oppName       = ref('Adversaire')
+const statRecorded  = ref(false)
 let game = null
 
 // ── Timers ────────────────────────────────────────────────────────────────
@@ -77,6 +79,7 @@ function connect() {
 
     if (d.type === 'start') {
       myColor.value   = d.color
+      oppName.value   = d.opponentName ?? 'Adversaire'
       timerSecs.value = d.timerSeconds
       whiteTime.value = d.timerSeconds
       blackTime.value = d.timerSeconds
@@ -84,6 +87,7 @@ function connect() {
       currentPlayer.value = 'white'
       whiteCaptured.value = 0
       blackCaptured.value = 0
+      statRecorded.value  = false
       rev.value++
       status.value    = 'playing'
       if (d.timerSeconds > 0) startTimer()
@@ -96,6 +100,7 @@ function connect() {
       endReason.value = d.reason
       status.value    = 'finished'
       stopTimer()
+      recordStat(d.winner)
     }
 
     if (d.type === 'opponent_disconnected') {
@@ -103,6 +108,7 @@ function connect() {
       endReason.value = 'disconnect'
       status.value    = 'finished'
       stopTimer()
+      recordStat(myColor.value)
     }
 
     if (d.type === 'error') status.value = 'error'
@@ -159,7 +165,11 @@ function move(toRow, toCol) {
 
   sendMsg({ type: 'move', code: props.code, from: result.from, to: result.to, captured: result.captured, continuation: result.continuation, nextPlayer: result.nextPlayer })
 
-  if (!result.continuation) currentPlayer.value = result.nextPlayer
+  if (!result.continuation) {
+    currentPlayer.value = result.nextPlayer
+    const w = game.checkWinner()
+    if (w) sendMsg({ type: 'game_over', code: props.code, winner: w })
+  }
   rev.value++
 }
 
@@ -173,6 +183,17 @@ function applyMove(d) {
   }
   if (!d.continuation) currentPlayer.value = d.nextPlayer
   rev.value++
+}
+
+async function recordStat(winnerColor) {
+  if (statRecorded.value || !myColor.value) return
+  statRecorded.value = true
+  try {
+    await $fetch('/api/stats/record', {
+      method: 'POST',
+      body: { mode: 'online', result: winnerColor === myColor.value ? 'win' : 'loss' }
+    })
+  } catch {}
 }
 
 onMounted(connect)
@@ -212,9 +233,13 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
       <div class="end-icon">{{ winner === myColor ? '🏆' : endReason === 'disconnect' ? '🔌' : '😔' }}</div>
       <h2 class="end-title">{{ winnerLabel }}</h2>
       <p class="end-sub">
-        <template v-if="endReason === 'time'">Temps écoulé</template>
-        <template v-else-if="endReason === 'resign'">L'adversaire a abandonné</template>
-        <template v-else-if="endReason === 'disconnect'">L'adversaire s'est déconnecté</template>
+        <template v-if="endReason === 'time' && winner === myColor">Le temps de votre adversaire est écoulé</template>
+        <template v-else-if="endReason === 'time'">Votre temps est écoulé</template>
+        <template v-else-if="endReason === 'resign' && winner === myColor">{{ oppName }} a abandonné</template>
+        <template v-else-if="endReason === 'resign'">Vous avez abandonné</template>
+        <template v-else-if="endReason === 'disconnect'">{{ oppName }} s'est déconnecté</template>
+        <template v-else-if="endReason === 'no_moves' && winner === myColor">{{ oppName }} n'a plus de pions</template>
+        <template v-else-if="endReason === 'no_moves'">Vous n'avez plus de pions</template>
       </p>
       <div class="end-scores" v-if="whiteCaptured + blackCaptured > 0">
         <div class="end-score-item">
@@ -227,7 +252,10 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
           <span>Noir : {{ blackCaptured }}</span>
         </div>
       </div>
-      <button class="btn-action" @click="$router.push('/jeu-online')">Nouvelle partie</button>
+      <div class="end-btns">
+        <button class="btn-action btn-action--secondary" @click="$router.push('/jeu-online')">Rejouer</button>
+        <button class="btn-action" @click="$router.push('/')">← Accueil</button>
+      </div>
     </div>
   </div>
 
@@ -238,7 +266,7 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
     <div class="side-panel top-panel">
       <div class="player-info">
         <div class="player-dot" :class="oppLabel === 'Blanc' ? 'dot-white' : 'dot-black'"></div>
-        <span class="player-name">Adversaire ({{ oppLabel }})</span>
+        <span class="player-name">{{ oppName }} ({{ oppLabel }})</span>
         <div class="inline-caps">
           <span
             v-for="i in (myColor === 'white' ? blackCaptured : whiteCaptured)"
@@ -304,7 +332,7 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
     <div class="side-panel bottom-panel">
       <div class="player-info">
         <div class="player-dot" :class="myLabel === 'Blanc' ? 'dot-white' : 'dot-black'"></div>
-        <span class="player-name">Moi ({{ myLabel }})</span>
+        <span class="player-name">{{ userName }} ({{ myLabel }})</span>
         <div class="inline-caps">
           <span
             v-for="i in (myColor === 'white' ? whiteCaptured : blackCaptured)"
@@ -398,8 +426,13 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
 .end-title { margin: 0; font-size: 1.5rem; }
 .end-sub   { margin: 0; color: rgba(255,255,255,0.5); }
 
+.end-btns {
+  display: flex;
+  gap: 0.7rem;
+  margin-top: 0.3rem;
+}
+
 .btn-action {
-  margin-top: 0.5rem;
   padding: 0.7rem 1.5rem;
   background: rgba(255,255,255,0.15);
   border: 1px solid rgba(255,255,255,0.4);
@@ -411,6 +444,12 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
   transition: background 0.2s;
 }
 .btn-action:hover { background: rgba(255,255,255,0.28); }
+.btn-action--secondary {
+  background: transparent;
+  border-color: rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.6);
+}
+.btn-action--secondary:hover { background: rgba(255,255,255,0.1); color: white; }
 
 /* ── Plateau ─────────────────────────────────────────────────────────── */
 .game-wrapper {

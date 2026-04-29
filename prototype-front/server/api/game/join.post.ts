@@ -11,6 +11,7 @@ export default defineEventHandler(async (event) => {
   if (room.status !== 'waiting') throw createError({ statusCode: 400, message: 'Cette partie a déjà commencé.' })
   if (room.creatorId === session.user.id) throw createError({ statusCode: 400, message: 'Vous avez créé cette partie.' })
 
-  room.joinerId = session.user.id
+  room.joinerId   = session.user.id
+  room.joinerName = session.user.name
   return { code: room.code }
 })

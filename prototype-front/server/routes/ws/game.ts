@@ -40,8 +40,8 @@ export default defineWebSocketHandler({
         room.joinerColor  = cc === 'white' ? 'black' : 'white'
         const secs = timerSeconds(room.params.timer, room.params.customSeconds)
 
-        room.peerCreator.send(JSON.stringify({ type: 'start', color: room.creatorColor, timerSeconds: secs }))
-        room.peerJoiner.send(JSON.stringify({ type: 'start', color: room.joinerColor,  timerSeconds: secs }))
+        room.peerCreator.send(JSON.stringify({ type: 'start', color: room.creatorColor, timerSeconds: secs, opponentName: room.joinerName  ?? 'Adversaire' }))
+        room.peerJoiner.send(JSON.stringify({ type: 'start', color: room.joinerColor,  timerSeconds: secs, opponentName: room.creatorName ?? 'Adversaire' }))
       } else {
         peer.send(JSON.stringify({ type: 'waiting' }))
       }
@@ -54,6 +54,17 @@ export default defineWebSocketHandler({
       if (!room || room.status !== 'playing') return
       const other = room.peerCreator === peer ? room.peerJoiner : room.peerCreator
       if (other) other.send(msg.text())
+      return
+    }
+
+    // ── Fin détectée côté client (plus de pions) ─────────────────────────────
+    if (data.type === 'game_over') {
+      const room = rooms.get(data.code?.toUpperCase())
+      if (!room || room.status !== 'playing') return
+      const end = JSON.stringify({ type: 'end', winner: data.winner, reason: 'no_moves' })
+      if (room.peerCreator) room.peerCreator.send(end)
+      if (room.peerJoiner)  room.peerJoiner.send(end)
+      room.status = 'finished'
       return
     }
 
