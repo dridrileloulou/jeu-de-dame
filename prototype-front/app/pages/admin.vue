@@ -5,10 +5,32 @@ const { user } = useUserSession()
 const { data, pending, refresh } = await useFetch('/api/admin/users')
 const users = computed(() => data.value?.users ?? [])
 
-function loginMethod(u) {
-  if (u.googleId) return 'Google'
-  if (u.password !== undefined) return 'Email'
-  return '—'
+const isPrincipalAdmin = computed(() => user.value?.name === 'admin')
+
+const togglingId = ref(null)
+const errorMsg = ref('')
+
+async function toggleAdmin(u) {
+  const newValue = !u.isAdmin
+  // Seul le compte admin peut révoquer
+  if (!newValue && !isPrincipalAdmin.value) {
+    errorMsg.value = 'Seul l\'administrateur principal peut révoquer les droits admin'
+    setTimeout(() => errorMsg.value = '', 3000)
+    return
+  }
+  togglingId.value = u._id
+  try {
+    await $fetch(`/api/admin/users/${u._id}/admin`, {
+      method: 'PATCH',
+      body: { isAdmin: newValue }
+    })
+    await refresh()
+  } catch (e) {
+    errorMsg.value = e?.data?.message ?? 'Erreur lors de la mise à jour'
+    setTimeout(() => errorMsg.value = '', 3000)
+  } finally {
+    togglingId.value = null
+  }
 }
 
 function formatDate(d) {
@@ -31,6 +53,8 @@ function formatDate(d) {
     </header>
 
     <main class="admin-main">
+      <div v-if="errorMsg" class="error-banner">{{ errorMsg }}</div>
+
       <div class="card">
         <div class="card-head">
           <h2>Utilisateurs <span class="count">{{ users.length }}</span></h2>
@@ -66,9 +90,21 @@ function formatDate(d) {
                     {{ u.googleId ? 'Google' : 'Email' }}
                   </span>
                 </td>
-                <td class="td-center">
-                  <span v-if="u.isAdmin" class="badge badge-admin">✓</span>
-                  <span v-else class="td-no">—</span>
+                <td class="td-admin">
+                  <div class="admin-cell">
+                    <span v-if="u.isAdmin" class="badge badge-admin">✓ Admin</span>
+                    <span v-else class="td-no">—</span>
+                    <!-- Pas de bouton pour l'admin principal sur lui-même -->
+                    <button
+                      v-if="u.name !== 'admin' && (u.isAdmin ? isPrincipalAdmin : true)"
+                      class="btn-toggle"
+                      :class="u.isAdmin ? 'btn-revoke' : 'btn-grant'"
+                      :disabled="togglingId === u._id"
+                      @click="toggleAdmin(u)"
+                    >
+                      {{ togglingId === u._id ? '…' : (u.isAdmin ? 'Révoquer' : 'Promouvoir') }}
+                    </button>
+                  </div>
                 </td>
                 <td class="td-date">{{ formatDate(u.createdAt) }}</td>
               </tr>
@@ -144,6 +180,16 @@ function formatDate(d) {
   padding: 2rem;
   max-width: 1100px;
   margin: 0 auto;
+}
+
+.error-banner {
+  background: rgba(230,57,70,0.2);
+  border: 1px solid rgba(230,57,70,0.4);
+  color: #e63946;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
 }
 
 .card {
@@ -250,9 +296,16 @@ td { padding: 0.75rem 1rem; vertical-align: middle; }
 .td-name { font-weight: 600; }
 .td-email { color: rgba(255,255,255,0.55); font-size: 0.85rem; }
 .td-elo { font-weight: 600; color: #f4a261; }
-.td-center { text-align: center; }
 .td-no { color: rgba(255,255,255,0.2); }
 .td-date { color: rgba(255,255,255,0.45); font-size: 0.85rem; }
+
+.td-admin { min-width: 160px; }
+
+.admin-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
 
 .badge {
   display: inline-block;
@@ -265,6 +318,34 @@ td { padding: 0.75rem 1rem; vertical-align: middle; }
 .badge-google { background: rgba(66,133,244,0.2); color: #7eb8f7; }
 .badge-email  { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); }
 .badge-admin  { background: rgba(230,57,70,0.2); color: #e63946; }
+
+.btn-toggle {
+  padding: 0.25rem 0.6rem;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.2s;
+}
+
+.btn-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-grant {
+  background: rgba(72,187,120,0.2);
+  color: #48bb78;
+  border: 1px solid rgba(72,187,120,0.3);
+}
+
+.btn-grant:hover:not(:disabled) { background: rgba(72,187,120,0.35); }
+
+.btn-revoke {
+  background: rgba(230,57,70,0.15);
+  color: #e63946;
+  border: 1px solid rgba(230,57,70,0.3);
+}
+
+.btn-revoke:hover:not(:disabled) { background: rgba(230,57,70,0.28); }
 
 .empty {
   text-align: center;
