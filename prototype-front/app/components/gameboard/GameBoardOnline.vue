@@ -18,6 +18,8 @@ const winner        = ref(null)
 const endReason     = ref(null)
 const currentPlayer = ref('white')
 const rev           = ref(0)            // déclencheur de re-render
+const whiteCaptured = ref(0)
+const blackCaptured = ref(0)
 let game = null
 
 // ── Timers ────────────────────────────────────────────────────────────────
@@ -80,6 +82,8 @@ function connect() {
       blackTime.value = d.timerSeconds
       game            = new Game()
       currentPlayer.value = 'white'
+      whiteCaptured.value = 0
+      blackCaptured.value = 0
       rev.value++
       status.value    = 'playing'
       if (d.timerSeconds > 0) startTimer()
@@ -148,6 +152,11 @@ function move(toRow, toCol) {
   const result = game.executeMove(toRow, toCol)
   if (!result) return
 
+  if (result.captured) {
+    if (myColor.value === 'white') whiteCaptured.value++
+    else blackCaptured.value++
+  }
+
   sendMsg({ type: 'move', code: props.code, from: result.from, to: result.to, captured: result.captured, continuation: result.continuation, nextPlayer: result.nextPlayer })
 
   if (!result.continuation) currentPlayer.value = result.nextPlayer
@@ -158,6 +167,10 @@ function move(toRow, toCol) {
 function applyMove(d) {
   if (!game) return
   game.applyMove(d.from, d.to, d.captured, d.continuation, d.nextPlayer)
+  if (d.captured) {
+    if (myColor.value === 'white') blackCaptured.value++
+    else whiteCaptured.value++
+  }
   if (!d.continuation) currentPlayer.value = d.nextPlayer
   rev.value++
 }
@@ -203,6 +216,17 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
         <template v-else-if="endReason === 'resign'">L'adversaire a abandonné</template>
         <template v-else-if="endReason === 'disconnect'">L'adversaire s'est déconnecté</template>
       </p>
+      <div class="end-scores" v-if="whiteCaptured + blackCaptured > 0">
+        <div class="end-score-item">
+          <span class="end-score-pip pip--white"></span>
+          <span>Blanc : {{ whiteCaptured }}</span>
+        </div>
+        <span class="end-score-sep">·</span>
+        <div class="end-score-item">
+          <span class="end-score-pip pip--black"></span>
+          <span>Noir : {{ blackCaptured }}</span>
+        </div>
+      </div>
       <button class="btn-action" @click="$router.push('/jeu-online')">Nouvelle partie</button>
     </div>
   </div>
@@ -215,6 +239,17 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
       <div class="player-info">
         <div class="player-dot" :class="oppLabel === 'Blanc' ? 'dot-white' : 'dot-black'"></div>
         <span class="player-name">Adversaire ({{ oppLabel }})</span>
+        <div class="inline-caps">
+          <span
+            v-for="i in (myColor === 'white' ? blackCaptured : whiteCaptured)"
+            :key="i"
+            class="inline-pip"
+            :class="myColor === 'white' ? 'pip--white' : 'pip--black'"
+          ></span>
+          <span class="inline-cap-count" v-if="(myColor === 'white' ? blackCaptured : whiteCaptured) > 0">
+            ×{{ myColor === 'white' ? blackCaptured : whiteCaptured }}
+          </span>
+        </div>
       </div>
       <div v-if="timerSecs > 0" class="timer" :class="{ 'timer-low': oppTimeSecs <= 30, 'timer-active': currentPlayer !== myColor }">
         {{ fmt(oppTimeSecs) }}
@@ -270,6 +305,17 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
       <div class="player-info">
         <div class="player-dot" :class="myLabel === 'Blanc' ? 'dot-white' : 'dot-black'"></div>
         <span class="player-name">Moi ({{ myLabel }})</span>
+        <div class="inline-caps">
+          <span
+            v-for="i in (myColor === 'white' ? whiteCaptured : blackCaptured)"
+            :key="i"
+            class="inline-pip"
+            :class="myColor === 'white' ? 'pip--black' : 'pip--white'"
+          ></span>
+          <span class="inline-cap-count" v-if="(myColor === 'white' ? whiteCaptured : blackCaptured) > 0">
+            ×{{ myColor === 'white' ? whiteCaptured : blackCaptured }}
+          </span>
+        </div>
       </div>
       <div v-if="timerSecs > 0" class="timer" :class="{ 'timer-low': myTimeSecs <= 30, 'timer-active': currentPlayer === myColor }">
         {{ fmt(myTimeSecs) }}
@@ -539,4 +585,64 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
   transition: background 0.2s;
 }
 .btn-resign:hover { background: rgba(255,34,0,0.35); }
+
+/* ── Captures inline (side panels) ───────────────────────────── */
+.inline-caps {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+  margin-left: 0.4rem;
+}
+
+.inline-pip {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 -1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.inline-cap-count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: 2px;
+}
+
+/* ── End-card scores ─────────────────────────────────────────── */
+.end-scores {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 0.5rem 1.2rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.end-score-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.end-score-pip {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.3);
+}
+
+.end-score-sep {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* Shared piece colors (also used in end-card + inline) */
+.pip--white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); }
+.pip--black { background: radial-gradient(circle at 35% 35%, #555, #111); }
 </style>

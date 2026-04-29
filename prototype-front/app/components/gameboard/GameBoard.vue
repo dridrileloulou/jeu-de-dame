@@ -1,5 +1,28 @@
 <template>
   <div class="game-wrapper">
+
+    <!-- Game Over Overlay -->
+    <div v-if="winner" class="gameover-overlay">
+      <div class="gameover-card">
+        <div class="gameover-crown">♛</div>
+        <h2 class="gameover-title">{{ winner === 'white' ? 'Blanc' : 'Noir' }} a gagné !</h2>
+        <div class="gameover-scores">
+          <div class="gscore">
+            <span class="gscore-pip pip--white"></span>
+            <span class="gscore-label">Blanc</span>
+            <span class="gscore-val">{{ whiteCaptured }}</span>
+          </div>
+          <span class="gscore-sep">·</span>
+          <div class="gscore">
+            <span class="gscore-pip pip--black"></span>
+            <span class="gscore-label">Noir</span>
+            <span class="gscore-val">{{ blackCaptured }}</span>
+          </div>
+        </div>
+        <button class="gameover-btn" @click="resetGame">Rejouer</button>
+      </div>
+    </div>
+
     <div class="timers-container" v-if="gameMode === 'local'">
       <PlayerTimer 
         :time-remaining="blackTime" 
@@ -47,6 +70,25 @@
       </div>
       <div class="right-panel" v-if="gameMode === 'local'">
         <PlayerTurn :current-player="currentPlayer" />
+        <div class="captures-panel">
+          <p class="cap-title">Prises</p>
+          <div class="cap-row">
+            <span class="cap-pip pip--white"></span>
+            <span class="cap-name">Blanc</span>
+            <div class="cap-dots">
+              <span v-for="i in whiteCaptured" :key="i" class="cap-dot dot--black"></span>
+            </div>
+            <span class="cap-count">{{ whiteCaptured }}</span>
+          </div>
+          <div class="cap-row">
+            <span class="cap-pip pip--black"></span>
+            <span class="cap-name">Noir</span>
+            <div class="cap-dots">
+              <span v-for="i in blackCaptured" :key="i" class="cap-dot dot--white"></span>
+            </div>
+            <span class="cap-count">{{ blackCaptured }}</span>
+          </div>
+        </div>
         <button class="pause-btn" @click="togglePause">
           {{ isPaused ? '▶ Reprendre' : '⏸ Pause' }}
         </button>
@@ -66,11 +108,14 @@ const props = defineProps({
 })
 
 let game = null
-const rev = ref(0)           // incrémenté après chaque action pour forcer le re-render
+const rev = ref(0)
 const currentPlayer = ref('white')
 const whiteTime = ref(600)
 const blackTime = ref(600)
 const isPaused = ref(false)
+const winner = ref(null)
+const whiteCaptured = ref(0)
+const blackCaptured = ref(0)
 let timerInterval = null
 
 onMounted(() => {
@@ -102,11 +147,37 @@ function selectPiece(row, col) {
   rev.value++
 }
 
+function resetGame() {
+  game = new Game()
+  currentPlayer.value = 'white'
+  whiteTime.value = 600
+  blackTime.value = 600
+  whiteCaptured.value = 0
+  blackCaptured.value = 0
+  winner.value = null
+  isPaused.value = false
+  rev.value++
+}
+
 function handleCellClick(row, col) {
-  if (isPaused.value || !game) return
+  if (isPaused.value || !game || winner.value) return
   if (game.isValidMove(row, col)) {
+    const movingPlayer = currentPlayer.value
     const result = game.executeMove(row, col)
-    if (result) { currentPlayer.value = result.nextPlayer; rev.value++ }
+    if (result) {
+      if (result.captured) {
+        if (movingPlayer === 'white') whiteCaptured.value++
+        else blackCaptured.value++
+      }
+      if (!result.continuation) {
+        currentPlayer.value = result.nextPlayer
+        rev.value++
+        const w = game.checkWinner()
+        if (w) winner.value = w
+      } else {
+        rev.value++
+      }
+    }
   } else {
     selectPiece(row, col)
   }
@@ -335,4 +406,166 @@ function handleCellClick(row, col) {
   flex-direction: column;
   gap: 40px;
 }
+
+/* ── Game Over ──────────────────────────────────────────────── */
+.gameover-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+}
+
+.gameover-card {
+  background: #444;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.7);
+  padding: 2.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  color: white;
+}
+
+.gameover-crown {
+  font-size: 3.5rem;
+  color: rgba(255, 215, 0, 0.95);
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+  line-height: 1;
+}
+
+.gameover-title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.gameover-scores {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 0.7rem 1.4rem;
+  border-radius: 12px;
+}
+
+.gscore {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gscore-pip {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.gscore-label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.gscore-val {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.gscore-sep {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 1.2rem;
+}
+
+.gameover-btn {
+  margin-top: 0.4rem;
+  padding: 0.75rem 2rem;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.gameover-btn:hover { background: rgba(255, 255, 255, 0.25); }
+
+/* ── Captures Panel ─────────────────────────────────────────── */
+.captures-panel {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cap-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.cap-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cap-pip {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.cap-name {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  min-width: 2.8rem;
+}
+
+.cap-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  flex: 1;
+}
+
+.cap-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.cap-count {
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+  min-width: 1.2rem;
+  text-align: right;
+}
+
+.pip--white, .dot--white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); }
+.pip--black, .dot--black { background: radial-gradient(circle at 35% 35%, #555, #111); }
 </style>
