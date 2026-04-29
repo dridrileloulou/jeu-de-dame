@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Game } from '../../engine/Game.js'
+import { Game } from './Game.js'
 
 const props = defineProps({
   code:     { type: String, required: true },

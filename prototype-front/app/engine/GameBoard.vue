@@ -99,13 +99,12 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Game } from '../../engine/Game.js'
-import PlayerTurn from '../PlayerTurn.vue'
-import PlayerTimer from '../PlayerTimer.vue'
+import { Game } from './Game.js'
+import PlayerTurn from './PlayerTurn.vue'
+import PlayerTimer from './PlayerTimer.vue'
 
 const props = defineProps({
-  gameMode: { type: String, default: 'local' },
-  level:    { type: String, default: 'normale' }
+  gameMode: { type: String, default: 'local' }
 })
 
 let game = null
@@ -136,6 +135,7 @@ function startTimer() {
 
 function togglePause() { isPaused.value = !isPaused.value }
 
+// Les fonctions ci-dessous lisent rev.value pour créer une dépendance réactive
 function getPieceAt(x, y)         { rev.value; return game?.getPiece(x, y) ?? null }
 function isSelected(row, col)     { rev.value; return game?.isSelected(row, col) ?? false }
 function isValidMove(row, col)    { rev.value; return game?.isValidMove(row, col) ?? false }
@@ -150,6 +150,8 @@ function selectPiece(row, col) {
 function resetGame() {
   game = new Game()
   currentPlayer.value = 'white'
+  whiteTime.value = 600
+  blackTime.value = 600
   whiteCaptured.value = 0
   blackCaptured.value = 0
   winner.value = null
