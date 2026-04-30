@@ -11,7 +11,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import NavMenu from '../components/NavMenu.vue'
-import GameBoardIA from '../engine/GameBoardIA.vue'
+import GameBoardIA from '../components/game/GameBoardIA.vue'
 
 const route = useRoute()
 const level = computed(() => route.query.level || 'normale')

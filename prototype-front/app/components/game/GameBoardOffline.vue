@@ -104,7 +104,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Game } from './Game.js'
+import { Game } from '../../engine/Game.js'
 import PlayerTimer from './PlayerTimer.vue'
 
 const props = defineProps({

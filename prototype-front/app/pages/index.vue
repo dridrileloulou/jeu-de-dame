@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '../components/index/Header.vue'
 import GameModePanel from '../components/index/GameModePanel.vue'
@@ -41,6 +41,10 @@ const showBugModal = ref(false)
 const showSavedGamesModal = ref(false)
 const showShopModal = ref(false)
 const showAdminModal = ref(false)
+
+onMounted(() => {
+  if (!loggedIn.value) showAuthModal.value = true
+})
 </script>
 
 <template>

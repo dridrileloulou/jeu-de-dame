@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import GameBar from '../components/GameBar.vue'
-import GameBoardOffline from '../engine/GameBoardOffline.vue'
+import GameBoardOffline from '../components/game/GameBoardOffline.vue'
 
 const started      = ref(false)
 const timerChoice  = ref('none')

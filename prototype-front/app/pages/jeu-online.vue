@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import GameBar from '../components/GameBar.vue'
-import GameBoardOnline from '../engine/GameBoardOnline.vue'
+import GameBoardOnline from '../components/game/GameBoardOnline.vue'
 
 const route  = useRoute()
 const router = useRouter()

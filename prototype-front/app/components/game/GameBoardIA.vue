@@ -4,8 +4,9 @@
     <!-- Game Over Overlay -->
     <div v-if="winner" class="gameover-overlay">
       <div class="gameover-card">
-        <div class="gameover-crown">♛</div>
-        <h2 class="gameover-title">{{ winner === 'white' ? 'Blanc' : 'Noir' }} a gagné !</h2>
+        <div class="gameover-icon">{{ winner === 'white' ? '🏆' : '🤖' }}</div>
+        <h2 class="gameover-title">{{ winner === 'white' ? 'Vous avez gagné !' : "L'IA a gagné !" }}</h2>
+        <p class="gameover-reason">{{ winner === 'white' ? "L'IA n'a plus de pions" : "Vous n'avez plus de pions" }}</p>
         <div class="gameover-scores">
           <div class="gscore">
             <span class="gscore-pip pip--white"></span>
@@ -19,22 +20,30 @@
             <span class="gscore-val">{{ blackCaptured }}</span>
           </div>
         </div>
-        <button class="gameover-btn" @click="resetGame">Rejouer</button>
+        <div class="gameover-btns">
+          <button class="gameover-btn gameover-btn--secondary" @click="resetGame">Rejouer</button>
+          <NuxtLink to="/" class="gameover-btn">← Accueil</NuxtLink>
+        </div>
       </div>
     </div>
 
     <div class="timers-container" v-if="gameMode === 'local'">
-      <PlayerTimer 
-        :time-remaining="blackTime" 
-        color="black" 
+      <PlayerTimer
+        :time-remaining="blackTime"
+        color="black"
         :is-active="currentPlayer === 'black'"
       />
-      <PlayerTimer 
-        :time-remaining="whiteTime" 
-        color="white" 
+      <PlayerTimer
+        :time-remaining="whiteTime"
+        color="white"
         :is-active="currentPlayer === 'white'"
       />
     </div>
+    <div class="board-section">
+      <div class="turn-banner" :class="currentPlayer">
+        <span class="turn-dot-sm" :class="currentPlayer === 'white' ? 'dot-white' : 'dot-black'"></span>
+        {{ currentPlayer === 'white' ? 'Votre tour (Blanc)' : "Tour de l'IA (Noir)" }}
+      </div>
     <div class="board-container">
       <div class="board" :class="{ paused: isPaused }">
         <div class="pause-overlay" v-if="isPaused">
@@ -46,9 +55,11 @@
             :key="col"
             class="cell"
             :class="{
-              dark: (row + col) % 2 === 0,
-              light: (row + col) % 2 !== 0,
-              shadowed: isValidMove(row, col)
+              dark:        (row + col) % 2 === 0,
+              light:       (row + col) % 2 !== 0,
+              shadowed:    isValidMove(row, col),
+              'last-from': lastMoveFrom && lastMoveFrom.x === col && lastMoveFrom.y === row,
+              'last-to':   lastMoveTo   && lastMoveTo.x   === col && lastMoveTo.y   === row,
             }"
             @click="handleCellClick(row, col)"
           >
@@ -94,17 +105,19 @@
         </button>
       </div>
     </div>
+    </div><!-- board-section -->
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Game } from './Game.js'
+import { Game } from '../../engine/Game.js'
 import PlayerTurn from './PlayerTurn.vue'
 import PlayerTimer from './PlayerTimer.vue'
 
 const props = defineProps({
-  gameMode: { type: String, default: 'local' }
+  gameMode: { type: String, default: 'local' },
+  level:    { type: String, default: 'normale' }
 })
 
 let game = null
@@ -116,6 +129,8 @@ const isPaused = ref(false)
 const winner = ref(null)
 const whiteCaptured = ref(0)
 const blackCaptured = ref(0)
+const lastMoveFrom = ref(null)
+const lastMoveTo   = ref(null)
 let timerInterval = null
 
 onMounted(() => {
@@ -135,7 +150,6 @@ function startTimer() {
 
 function togglePause() { isPaused.value = !isPaused.value }
 
-// Les fonctions ci-dessous lisent rev.value pour créer une dépendance réactive
 function getPieceAt(x, y)         { rev.value; return game?.getPiece(x, y) ?? null }
 function isSelected(row, col)     { rev.value; return game?.isSelected(row, col) ?? false }
 function isValidMove(row, col)    { rev.value; return game?.isValidMove(row, col) ?? false }
@@ -150,12 +164,12 @@ function selectPiece(row, col) {
 function resetGame() {
   game = new Game()
   currentPlayer.value = 'white'
-  whiteTime.value = 600
-  blackTime.value = 600
   whiteCaptured.value = 0
   blackCaptured.value = 0
   winner.value = null
   isPaused.value = false
+  lastMoveFrom.value = null
+  lastMoveTo.value   = null
   rev.value++
 }
 
@@ -171,9 +185,11 @@ function handleCellClick(row, col) {
       }
       if (!result.continuation) {
         currentPlayer.value = result.nextPlayer
+        lastMoveFrom.value  = result.from
+        lastMoveTo.value    = result.to
         rev.value++
         const w = game.checkWinner()
-        if (w) winner.value = w
+        if (w) { winner.value = w; recordStat(w) }
       } else {
         rev.value++
       }
@@ -181,6 +197,15 @@ function handleCellClick(row, col) {
   } else {
     selectPiece(row, col)
   }
+}
+
+async function recordStat(winnerColor) {
+  try {
+    await $fetch('/api/stats/record', {
+      method: 'POST',
+      body: { mode: 'ia', result: winnerColor === 'white' ? 'win' : 'loss' }
+    })
+  } catch {}
 }
 </script>
 
@@ -250,14 +275,17 @@ function handleCellClick(row, col) {
 }
 
 /* Case Sombre : Gris #262626 */
-.dark { 
-  background-color: #262626; 
-} 
+.dark {
+  background-color: #262626;
+}
 
 /* Case Claire : Gris #b0b0b0 */
-.light { 
-  background-color: #b0b0b0; 
-} 
+.light {
+  background-color: #b0b0b0;
+}
+
+.cell.last-from { background-color: #3a2c00 !important; }
+.cell.last-to   { background-color: #5e4500 !important; }
 
 /* Indicateur de mouvement possible (Style Initial) */
 .shadowed::before {
@@ -432,11 +460,21 @@ function handleCellClick(row, col) {
   color: white;
 }
 
-.gameover-crown {
+.gameover-icon {
   font-size: 3.5rem;
-  color: rgba(255, 215, 0, 0.95);
-  text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
   line-height: 1;
+}
+
+.gameover-reason {
+  margin: -0.5rem 0 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.gameover-btns {
+  display: flex;
+  gap: 0.7rem;
+  margin-top: 0.2rem;
 }
 
 .gameover-title {
@@ -487,7 +525,6 @@ function handleCellClick(row, col) {
 }
 
 .gameover-btn {
-  margin-top: 0.4rem;
   padding: 0.75rem 2rem;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.35);
@@ -497,8 +534,66 @@ function handleCellClick(row, col) {
   border-radius: 10px;
   cursor: pointer;
   transition: background 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
 .gameover-btn:hover { background: rgba(255, 255, 255, 0.25); }
+.gameover-btn--secondary {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.6);
+}
+.gameover-btn--secondary:hover { background: rgba(255, 255, 255, 0.1); color: white; }
+
+/* ── Board section wrapper ──────────────────────────────────── */
+.board-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── Turn banner ────────────────────────────────────────────── */
+.turn-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s;
+  color: white;
+}
+.turn-banner.white {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  animation: my-turn-glow 1.8s ease-in-out infinite;
+}
+.turn-banner.black {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+}
+@keyframes my-turn-glow {
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.15); }
+  50%       { box-shadow: 0 0 16px 4px rgba(255, 255, 255, 0.4); }
+}
+
+.turn-dot-sm {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+}
+.dot-white { background: #fff; }
+.dot-black { background: #222; }
+
+@media (max-width: 700px) {
+  .right-panel { display: none; }
+}
 
 /* ── Captures Panel ─────────────────────────────────────────── */
 .captures-panel {

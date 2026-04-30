@@ -14,10 +14,10 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import NavMenu from '../components/NavMenu.vue'
-import GameBoard from '../engine/GameBoard.vue'
-import GameBoardIA from '../engine/GameBoardIA.vue'
-import GameBoardOffline from '../engine/GameBoardOffline.vue'
-import GameBoardOnline from '../engine/GameBoardOnline.vue'
+import GameBoard from '../components/game/GameBoard.vue'
+import GameBoardIA from '../components/game/GameBoardIA.vue'
+import GameBoardOffline from '../components/game/GameBoardOffline.vue'
+import GameBoardOnline from '../components/game/GameBoardOnline.vue'
 
 const route = useRoute()
 const gameMode = computed(() => route.query.mode || 'local')

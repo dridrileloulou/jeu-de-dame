@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Game } from './Game.js'
+import { Game } from '../../engine/Game.js'
 
 const props = defineProps({
   code:     { type: String, required: true },
@@ -22,6 +22,8 @@ const whiteCaptured = ref(0)
 const blackCaptured = ref(0)
 const oppName       = ref('Adversaire')
 const statRecorded  = ref(false)
+const lastMoveFrom  = ref(null)
+const lastMoveTo    = ref(null)
 let game = null
 
 // ── Timers ────────────────────────────────────────────────────────────────
@@ -88,6 +90,8 @@ function connect() {
       whiteCaptured.value = 0
       blackCaptured.value = 0
       statRecorded.value  = false
+      lastMoveFrom.value  = null
+      lastMoveTo.value    = null
       rev.value++
       status.value    = 'playing'
       if (d.timerSeconds > 0) startTimer()
@@ -181,7 +185,11 @@ function applyMove(d) {
     if (myColor.value === 'white') blackCaptured.value++
     else whiteCaptured.value++
   }
-  if (!d.continuation) currentPlayer.value = d.nextPlayer
+  if (!d.continuation) {
+    currentPlayer.value = d.nextPlayer
+    lastMoveFrom.value = d.from
+    lastMoveTo.value   = d.to
+  }
   rev.value++
 }
 
@@ -263,7 +271,7 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
   <div v-else-if="status === 'playing'" class="game-wrapper">
 
     <!-- Panneau adversaire (en haut) -->
-    <div class="side-panel top-panel">
+    <div class="side-panel top-panel" :class="{ 'panel-active': !isMyTurn }">
       <div class="player-info">
         <div class="player-dot" :class="oppLabel === 'Blanc' ? 'dot-white' : 'dot-black'"></div>
         <span class="player-name">{{ oppName }} ({{ oppLabel }})</span>
@@ -293,9 +301,11 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
             :key="col"
             class="cell"
             :class="{
-              dark:     (row + col) % 2 === 0,
-              light:    (row + col) % 2 !== 0,
-              shadowed: isValidTarget(row, col)
+              dark:        (row + col) % 2 === 0,
+              light:       (row + col) % 2 !== 0,
+              shadowed:    isValidTarget(row, col),
+              'last-from': lastMoveFrom && lastMoveFrom.x === col && lastMoveFrom.y === row,
+              'last-to':   lastMoveTo   && lastMoveTo.x   === col && lastMoveTo.y   === row,
             }"
             @click="onCellClick(row, col)"
           >
@@ -318,7 +328,7 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
 
       <!-- Panel droit : tour + abandon -->
       <div class="right-panel">
-        <div class="turn-indicator" :class="currentPlayer">
+        <div class="turn-indicator" :class="[currentPlayer, { 'my-turn': isMyTurn }]">
           <div class="turn-dot" :class="currentPlayer === 'white' ? 'dot-white' : 'dot-black'"></div>
           {{ turnLabel }}
         </div>
@@ -329,7 +339,7 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
     </div>
 
     <!-- Panneau moi (en bas) -->
-    <div class="side-panel bottom-panel">
+    <div class="side-panel bottom-panel" :class="{ 'panel-active': isMyTurn }">
       <div class="player-info">
         <div class="player-dot" :class="myLabel === 'Blanc' ? 'dot-white' : 'dot-black'"></div>
         <span class="player-name">{{ userName }} ({{ myLabel }})</span>
@@ -537,6 +547,9 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
 .dark  { background: #262626; }
 .light { background: #b0b0b0; }
 
+.cell.last-from { background: #3a2c00 !important; }
+.cell.last-to   { background: #5e4500 !important; }
+
 .shadowed::before {
   content: '';
   position: absolute;
@@ -589,6 +602,19 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
 }
 
 /* ── Panel droit ──────────────────────────────────────────────────────── */
+.panel-active {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-left: 3px solid rgba(255, 255, 255, 0.65);
+}
+
+.turn-indicator.my-turn {
+  animation: turn-pulse 1.8s ease-in-out infinite;
+}
+@keyframes turn-pulse {
+  0%, 100% { box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.2); }
+  50%       { box-shadow: 0 0 18px 6px rgba(255, 255, 255, 0.5); }
+}
+
 .right-panel {
   display: flex;
   flex-direction: column;
