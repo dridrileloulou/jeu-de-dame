@@ -10,7 +10,7 @@ defineProps({
 
 const emit = defineEmits(['confirm', 'close'])
 
-const difficulty = ref('normal')
+const difficulty = ref('normale')
 </script>
 
 <template>
@@ -19,7 +19,7 @@ const difficulty = ref('normal')
       <h3>Niveau de difficulté</h3>
       <select v-model="difficulty">
         <option value="facile">Facile</option>
-        <option value="normal">Normale</option>
+        <option value="normale">Normale</option>
         <option value="difficile">Difficile</option>
         <option value="expert">Expert</option>
       </select>

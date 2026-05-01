@@ -10,7 +10,7 @@ defineProps({
   }
 })
 
-const emit = defineEmits(['start-ia', 'open-auth', 'open-saved-games', 'open-shop'])
+const emit = defineEmits(['startIA', 'openAuth', 'openSavedGames', 'openShop'])
 </script>
 
 <template>
@@ -21,17 +21,19 @@ const emit = defineEmits(['start-ia', 'open-auth', 'open-saved-games', 'open-sho
       <h2>Choisissez votre mode de jeu :</h2>
 
       <div class="buttons">
-        <NuxtLink v-if="loggedIn" to="/jeu-online" class="btn-mode">
-          <span class="btn-icon">🌐</span>
-          Jouer en ligne
-        </NuxtLink>
-        <button class="btn-mode" @click="emit('start-ia')">
-          <span class="btn-icon">🤖</span>
-          Jouer contre une IA
-        </button>
+        <template v-if="loggedIn">
+          <NuxtLink to="/jeu-online" class="btn-mode">
+            <span class="btn-icon">🌐</span>
+            Jouer en ligne
+          </NuxtLink>
+          <button class="btn-mode" @click="emit('startIA')">
+            <span class="btn-icon">🤖</span>
+            Jouer contre une IA
+          </button>
+        </template>
 
-        <p v-if="!loggedIn" class="connect-hint" @click="emit('open-auth')">
-          🔒 Connectez-vous pour jouer en ligne
+        <p v-else class="connect-hint" @click="emit('openAuth')">
+          🔒 Connectez-vous pour jouer en ligne ou contre une IA
         </p>
 
         <NuxtLink to="/jeu-offline" class="btn-mode btn-offline">
@@ -42,11 +44,11 @@ const emit = defineEmits(['start-ia', 'open-auth', 'open-saved-games', 'open-sho
 
       <!-- BOUTONS CARRÉS SOMBRES -->
       <div v-if="loggedIn" class="square-buttons">
-        <button class="btn-square" @click="emit('open-saved-games')">
+        <button class="btn-square" @click="emit('openSavedGames')">
           <span class="square-icon">💾</span>
           <span class="square-label">Mes parties</span>
         </button>
-        <button class="btn-square" @click="emit('open-shop')">
+        <button class="btn-square" @click="emit('openShop')">
           <span class="square-icon">🛒</span>
           <span class="square-label">Boutique</span>
         </button>

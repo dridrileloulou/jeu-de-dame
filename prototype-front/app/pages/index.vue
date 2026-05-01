@@ -30,16 +30,8 @@ function startIA() {
   showDifficulty.value = true
 }
 
-async function confirmDifficulty(level) {
-  try {
-    await $fetch('/api/launch-ia', {
-      method: 'POST',
-      body: { level: level }
-    })
-  } catch (err) {
-    console.error('Erreur lors du lancement de l\'IA :', err)
-  }
-  showDifficulty.value = false
+function confirmDifficulty(level) {
+  router.push(`/jeu-ia?level=${level}`)
 }
 
 const showBugModal = ref(false)
@@ -49,7 +41,7 @@ const showShopModal = ref(false)
 const showAdminModal = ref(false)
 
 onMounted(() => {
-  // if (!loggedIn.value) showAuthModal.value = true
+  if (!loggedIn.value) showAuthModal.value = true
 })
 </script>
 
