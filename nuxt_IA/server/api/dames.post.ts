@@ -124,15 +124,21 @@ async function askGemini(board: Board, level: number, aiPlayer: Cell): Promise<s
 export default defineEventHandler(async (event) => {
     const start = Date.now();
     const body = await readBody<RequestBody>(event);
-    const { board, level, player } = body;
+    const { board, level, player, useMinimaxOnly } = body;
     const aiPlayer = player ?? 2;
 
-    let move = await askGemini(board, level, aiPlayer);
-    
-    // Fallback: If Gemini failed after 3 retries (Quota/503), use local Minimax
-    if (!move) {
-        console.warn(`[Fallback] Gemini a échoué. Utilisation de l'algorithme Minimax local (profondeur ${level})...`);
+    let move;
+    if (useMinimaxOnly) {
+        console.log(`[Minimax Override] Calcul de la meilleure capture (profondeur ${level})...`);
         move = getMinimaxFallbackMove(board, aiPlayer, level);
+    } else {
+        move = await askGemini(board, level, aiPlayer);
+        
+        // Fallback: If Gemini failed after 2 retries (Quota/503), use local Minimax
+        if (!move) {
+            console.warn(`[Fallback] Gemini a échoué. Utilisation de l'algorithme Minimax local (profondeur ${level})...`);
+            move = getMinimaxFallbackMove(board, aiPlayer, level);
+        }
     }
 
     const duration = Date.now() - start;

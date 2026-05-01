@@ -70,43 +70,14 @@ async function run() {
             console.log('\n🤖 ======================================');
             console.log('🤖 Tour de l\'IA (Noirs) détecté ! NIVEAU 3 (Expert)');
             
-            // --- LOGIQUE POUR CAPTURE OBLIGATOIRE ---
-            const forcedMove = await page.evaluate(async () => {
-                const mandatoryPieces = Array.from(document.querySelectorAll('.piece.black.mandatoryCapture'));
-                if (mandatoryPieces.length > 0) {
-                    // Choisir un pion au hasard parmi ceux qui peuvent capturer
-                    const piece = mandatoryPieces[Math.floor(Math.random() * mandatoryPieces.length)];
-                    piece.click(); // Sélectionne la pièce
-                    
-                    // On attend que Vue mette à jour le DOM
-                    await new Promise(r => setTimeout(r, 100));
-                    
-                    const shadowedCells = Array.from(document.querySelectorAll('.cell.shadowed'));
-                    if (shadowedCells.length > 0) {
-                        // Choisir une destination de capture au hasard
-                        const cell = shadowedCells[Math.floor(Math.random() * shadowedCells.length)];
-                        const rows = Array.from(document.querySelectorAll('.row'));
-                        const r1 = rows.indexOf(piece.closest('.row'));
-                        const c1 = Array.from(piece.closest('.row').querySelectorAll('.cell')).indexOf(piece.closest('.cell'));
-                        const r2 = rows.indexOf(cell.closest('.row'));
-                        const c2 = Array.from(cell.closest('.row').querySelectorAll('.cell')).indexOf(cell);
-                        return { r1, c1, r2, c2 };
-                    }
-                }
-                return null;
+            // Vérifier s'il y a des captures obligatoires
+            const hasMandatoryCapture = await page.evaluate(() => {
+                const mandatoryPieces = document.querySelectorAll('.piece.black.mandatoryCapture');
+                return mandatoryPieces.length > 0;
             });
 
-            if (forcedMove) {
-                console.log(`⚡ Capture obligatoire unique détectée ! Mouvement automatique : [Y:${forcedMove.r1}, X:${forcedMove.c1}] vers [Y:${forcedMove.r2}, X:${forcedMove.c2}] sans appeler l'API.`);
-                await page.evaluate(async (r2, c2) => {
-                    const rows = document.querySelectorAll('.row');
-                    const cell2 = rows[r2].querySelectorAll('.cell')[c2];
-                    cell2.click(); // Effectue le mouvement
-                }, forcedMove.r2, forcedMove.c2);
-                
-                await new Promise(r => setTimeout(r, 1500));
-                isWaitingForAi = false;
-                return; // On saute l'appel à l'API !
+            if (hasMandatoryCapture) {
+                console.log(`⚡ Captures obligatoires détectées ! Demande au Minimax de choisir la meilleure...`);
             }
 
             // Construire la matrice du terrain depuis le DOM du navigateur
@@ -140,7 +111,7 @@ async function run() {
             console.log('Réflexion en cours (appel à l\'API)...');
             const resp = await $fetch(API, { 
                 method: 'POST', 
-                body: { board: matrix, level: 3, player: 1 } 
+                body: { board: matrix, level: 3, player: 1, useMinimaxOnly: hasMandatoryCapture } 
             });
 
             if (resp.aiMove) {
