@@ -300,7 +300,7 @@ body { overflow: hidden; }
 .board-wrap {
   flex: 1; display: flex;
   align-items: center; justify-content: center;
-  min-height: 0; overflow: auto;
+  min-height: 0; overflow: hidden;
 }
 
 .bar-btn {
