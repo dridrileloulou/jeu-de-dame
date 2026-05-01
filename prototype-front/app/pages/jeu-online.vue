@@ -359,7 +359,7 @@ body { overflow: hidden; }
   .backdrop { padding: 1rem 0.75rem; align-items: flex-start; padding-top: 1.5rem; }
   .modal { padding: 1.5rem 1.2rem; gap: 1rem; }
   .modal-title { font-size: 1.1rem; }
-  .pill { min-width: 56px; font-size: 0.8rem; padding: 0.4rem 0.4rem; }
+  .pill { min-width: 0; font-size: 0.75rem; padding: 0.4rem 0.35rem; }
   .code-input { font-size: 1.2rem; padding: 0.6rem 0.7rem; letter-spacing: 0.15em; }
   .btn-launch { padding: 0.65rem 1rem; font-size: 0.92rem; }
   .field-label { font-size: 0.72rem; }
