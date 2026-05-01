@@ -6,7 +6,6 @@ import GameModePanel from '../components/index/GameModePanel.vue'
 import DifficultyModal from '../components/index/DifficultyModal.vue'
 import AuthModal from '../components/index/AuthModal.vue'
 import ProfileModal from '../components/index/ProfileModal.vue'
-import RulesModal from '../components/index/RulesModal.vue'
 import BugModal from '../components/index/BugModal.vue'
 import SavedGamesModal from '../components/index/SavedGamesModal.vue'
 import ShopModal from '../components/index/ShopModal.vue'
@@ -35,7 +34,6 @@ function confirmDifficulty(level) {
   router.push(`/jeu-ia?level=${level}`)
 }
 
-const showRulesModal = ref(false)
 const showBugModal = ref(false)
 
 const showSavedGamesModal = ref(false)
@@ -83,15 +81,8 @@ onMounted(() => {
       @close="showProfileModal = false"
     />
 
-    <!-- POPUP RÈGLES -->
-    <RulesModal
-      :show="showRulesModal"
-      @close="showRulesModal = false"
-    />
-
     <!-- FOOTER -->
     <FooterBar
-      @open-rules="showRulesModal = true"
       @open-bug="showBugModal = true"
     />
 

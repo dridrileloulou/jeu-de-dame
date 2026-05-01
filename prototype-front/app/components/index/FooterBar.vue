@@ -1,15 +1,15 @@
 <script setup>
-const emit = defineEmits(['openRules', 'openBug'])
+const emit = defineEmits(['openBug'])
 </script>
 
 <template>
   <footer class="footer-bar">
     <span class="footer-copy">© 2025 Dam'eirb.fr</span>
     <div class="footer-buttons">
-      <button class="btn-mode btn-footer" @click="emit('openRules')">
+      <NuxtLink to="/regles" class="btn-mode btn-footer">
         <span class="btn-icon">📖</span>
         Règles
-      </button>
+      </NuxtLink>
       <button class="btn-mode btn-footer" @click="emit('openBug')">
         <span class="btn-icon">✉</span>
         Signaler un bug
