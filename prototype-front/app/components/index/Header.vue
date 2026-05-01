@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 const emit = defineEmits(['open-auth', 'open-profile', 'open-admin'])
-const { loggedIn, user, clear } = useUserSession()
+const { loggedIn, user } = useUserSession()
 
 const COLORS = ['#e74c3c','#e67e22','#f39c12','#2ecc71','#1abc9c','#3498db','#9b59b6','#8e44ad']
 function nameColor(name) {
@@ -44,7 +44,6 @@ const avatarLetter = computed(() => (user.value?.name ?? '?')[0]?.toUpperCase() 
           >{{ avatarLetter }}</div>
           <span class="username">{{ user?.name }}</span>
         </button>
-        <button class="btn-signout" @click="clear()">Déconnexion</button>
       </div>
     </div>
   </header>

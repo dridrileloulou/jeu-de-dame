@@ -8,6 +8,13 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
+const { clear } = useUserSession()
+
+function logout() {
+  clear()
+  emit('close')
+}
+
 const stats = ref(null)
 
 watch(() => props.show, async (v) => {
@@ -79,6 +86,10 @@ const avatarLetter = computed(() => (props.user?.name ?? '?')[0].toUpperCase())
           <span class="stat-value">{{ user?.elo ?? 1000 }}</span>
           <span class="stat-label">Classement ELO</span>
         </div>
+      </div>
+
+      <div class="profile-footer">
+        <button class="btn-logout" @click="logout">Déconnexion</button>
       </div>
     </div>
   </div>
@@ -203,4 +214,26 @@ const avatarLetter = computed(() => (props.user?.name ?? '?')[0].toUpperCase())
   color: rgba(255, 255, 255, 0.45);
   text-align: center;
 }
+
+/* ── FOOTER ── */
+.profile-footer {
+  padding: calc(var(--cell) * 0.14) calc(var(--cell) * 0.25) calc(var(--cell) * 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-logout {
+  padding: calc(var(--cell) * 0.09) calc(var(--cell) * 0.22);
+  background: rgba(255, 80, 80, 0.12);
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  border-radius: 999px;
+  font-size: calc(var(--fs-base) * 0.88);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: inherit;
+}
+.btn-logout:hover { background: rgba(255, 80, 80, 0.25); }
 </style>

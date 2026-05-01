@@ -85,7 +85,7 @@ onMounted(async () => {
             <span class="field-label">Temps par joueur</span>
             <div class="btn-group">
               <button
-                v-for="opt in [{ v:'none',l:'♾ Sans timer' },{ v:'5min',l:'5 min' },{ v:'10min',l:'10 min' },{ v:'custom',l:'Perso' }]"
+                v-for="opt in [{ v:'none',l:'♾ Sans' },{ v:'5min',l:'5 min' },{ v:'10min',l:'10 min' },{ v:'custom',l:'Perso' }]"
                 :key="opt.v"
                 :class="['pill', { active: timerChoice === opt.v }]"
                 @click="timerChoice = opt.v"
