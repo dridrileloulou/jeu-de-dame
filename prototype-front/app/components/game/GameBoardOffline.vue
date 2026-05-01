@@ -204,6 +204,7 @@ function handleCellClick(row, col) {
         const w = game.checkWinner()
         if (w) {
           winner.value = w
+          recordStat(w)
           deleteSavedGame()
         }
       } else {
@@ -213,6 +214,17 @@ function handleCellClick(row, col) {
   } else {
     selectPiece(row, col)
   }
+}
+
+async function recordStat(winnerColor) {
+  const winnerName = winnerColor === 'white' ? props.whiteName : props.blackName
+  const loserName  = winnerColor === 'white' ? props.blackName : props.whiteName
+  try {
+    await $fetch('/api/stats/record', {
+      method: 'POST',
+      body: { mode: 'local', result: winnerName, opponent: loserName, reason: 'no_pieces' }
+    })
+  } catch {}
 }
 
 async function saveGame() {

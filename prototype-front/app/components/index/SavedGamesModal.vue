@@ -40,8 +40,8 @@ async function deleteGame(id) {
   deletingId.value = null
 }
 
-const MODE_LABEL  = { ia: 'vs IA', online: 'En ligne' }
-const MODE_ICON   = { ia: '🤖', online: '🌐' }
+const MODE_LABEL  = { ia: 'vs IA', online: 'En ligne', local: 'Local' }
+const MODE_ICON   = { ia: '🤖', online: '🌐', local: '👥' }
 const REASON_LABEL = {
   no_pieces:  'Plus de pions',
   no_moves:   'Plus de mouvements',
@@ -118,12 +118,19 @@ function formatDatetime(d) {
         <div v-if="history.length === 0" class="empty-state">Aucune partie jouée.</div>
         <ul v-else class="game-list">
           <li v-for="(g, i) in history" :key="i" class="game-item">
-            <span class="result-badge" :class="g.result === 'win' ? 'win' : 'loss'">
-              {{ g.result === 'win' ? 'Victoire' : 'Défaite' }}
-            </span>
+            <template v-if="g.mode === 'local'">
+              <span class="result-badge local">🏆 {{ g.result }}</span>
+            </template>
+            <template v-else>
+              <span class="result-badge" :class="g.result === 'win' ? 'win' : 'loss'">
+                {{ g.result === 'win' ? 'Victoire' : 'Défaite' }}
+              </span>
+            </template>
             <div class="game-info">
               <span class="game-mode">{{ MODE_ICON[g.mode] }} {{ MODE_LABEL[g.mode] }}</span>
-              <span class="game-opponent">{{ opponentLabel(g) }}</span>
+              <span class="game-opponent">
+                {{ g.mode === 'local' ? `${g.result} vs ${g.opponent}` : opponentLabel(g) }}
+              </span>
               <span v-if="g.reason" class="game-reason">{{ REASON_LABEL[g.reason] ?? g.reason }}</span>
             </div>
             <span class="game-date">{{ formatDate(g.date) }}</span>
@@ -332,8 +339,9 @@ function formatDatetime(d) {
   padding: 3px 10px;
   border-radius: 999px;
 }
-.result-badge.win  { background: rgba(46,213,115,0.18); color: #2ed573; border: 1px solid rgba(46,213,115,0.35); }
-.result-badge.loss { background: rgba(255,107,107,0.18); color: #ff6b6b; border: 1px solid rgba(255,107,107,0.35); }
+.result-badge.win   { background: rgba(46,213,115,0.18);  color: #2ed573; border: 1px solid rgba(46,213,115,0.35); }
+.result-badge.loss  { background: rgba(255,107,107,0.18); color: #ff6b6b; border: 1px solid rgba(255,107,107,0.35); }
+.result-badge.local { background: rgba(255,215,0,0.15);   color: #ffd700; border: 1px solid rgba(255,215,0,0.35); }
 
 .game-info {
   flex: 1;
