@@ -19,7 +19,14 @@ const userSchema = new mongoose.Schema({
       wins:   { type: Number, default: 0 },
       losses: { type: Number, default: 0 }
     }
-  }
+  },
+  gameHistory: [{
+    mode:     { type: String },
+    result:   { type: String },
+    opponent: { type: String },
+    reason:   { type: String },
+    date:     { type: Date, default: Date.now }
+  }]
 }, { timestamps: true })
 
 export const User = mongoose.models.User || mongoose.model('User', userSchema)

@@ -3,18 +3,18 @@
   <div v-if="winner" class="gameover-overlay">
     <div class="gameover-card">
       <div class="gameover-icon">🏆</div>
-      <h2 class="gameover-title">{{ winner === 'white' ? 'Les Blancs gagnent !' : 'Les Noirs gagnent !' }}</h2>
-      <p class="gameover-reason">{{ winner === 'white' ? 'Les Noirs n\'ont plus de pions' : 'Les Blancs n\'ont plus de pions' }}</p>
+      <h2 class="gameover-title">{{ winner === 'white' ? `${props.whiteName} gagne !` : `${props.blackName} gagne !` }}</h2>
+      <p class="gameover-reason">{{ winner === 'white' ? `${props.blackName} n'a plus de pions` : `${props.whiteName} n'a plus de pions` }}</p>
       <div class="gameover-scores">
         <div class="gscore">
           <span class="gscore-pip pip--white"></span>
-          <span class="gscore-label">Blanc</span>
+          <span class="gscore-label">{{ props.whiteName }}</span>
           <span class="gscore-val">{{ whiteCaptured }}</span>
         </div>
         <span class="gscore-sep">·</span>
         <div class="gscore">
           <span class="gscore-pip pip--black"></span>
-          <span class="gscore-label">Noir</span>
+          <span class="gscore-label">{{ props.blackName }}</span>
           <span class="gscore-val">{{ blackCaptured }}</span>
         </div>
       </div>
@@ -32,7 +32,7 @@
     <div class="player-strip" :class="{ 'strip-active': currentPlayer === 'black' }">
       <div class="strip-left">
         <div class="strip-dot dot-black"></div>
-        <span class="strip-name">Noir</span>
+        <span class="strip-name">{{ props.blackName }}</span>
         <div class="strip-caps" v-if="blackCaptured > 0">
           <span class="strip-cap-count">+{{ blackCaptured }}</span>
           <span v-for="i in Math.min(blackCaptured, 10)" :key="i" class="strip-pip pip--white"></span>
@@ -80,7 +80,7 @@
     <div class="player-strip" :class="{ 'strip-active': currentPlayer === 'white' }">
       <div class="strip-left">
         <div class="strip-dot dot-white"></div>
-        <span class="strip-name">Blanc</span>
+        <span class="strip-name">{{ props.whiteName }}</span>
         <div class="strip-caps" v-if="whiteCaptured > 0">
           <span class="strip-cap-count">+{{ whiteCaptured }}</span>
           <span v-for="i in Math.min(whiteCaptured, 10)" :key="i" class="strip-pip pip--black"></span>
@@ -92,11 +92,16 @@
     <!-- Barre de contrôles -->
     <div class="controls-bar">
       <div class="turn-badge" :class="currentPlayer">
-        {{ currentPlayer === 'white' ? '⬜ Tour : Blanc' : '⬛ Tour : Noir' }}
+        {{ currentPlayer === 'white' ? `⬜ Tour : ${props.whiteName}` : `⬛ Tour : ${props.blackName}` }}
       </div>
-      <button class="pause-btn" @click="togglePause">
-        {{ isPaused ? '▶ Reprendre' : '⏸ Pause' }}
-      </button>
+      <div class="controls-right">
+        <button v-if="loggedIn" class="save-btn" :class="{ saved: justSaved }" :disabled="saving" @click="saveGame">
+          {{ justSaved ? '✓ Sauvegardé' : saving ? '…' : '💾 Sauvegarder' }}
+        </button>
+        <button class="pause-btn" @click="togglePause">
+          {{ isPaused ? '▶ Reprendre' : '⏸ Pause' }}
+        </button>
+      </div>
     </div>
 
   </div>
@@ -109,8 +114,14 @@ import PlayerTimer from './PlayerTimer.vue'
 
 const props = defineProps({
   gameMode:     { type: String, default: 'local' },
-  timerSeconds: { type: Number, default: 0 }
+  timerSeconds: { type: Number, default: 0 },
+  whiteName:    { type: String, default: 'Blanc' },
+  blackName:    { type: String, default: 'Noir' },
+  savedGameId:  { type: String, default: null },
+  initialState: { type: Object, default: null }
 })
+
+const { loggedIn } = useUserSession()
 
 let game = null
 const rev = ref(0)
@@ -123,8 +134,22 @@ const whiteCaptured = ref(0)
 const blackCaptured = ref(0)
 let timerInterval = null
 
+const savedId = ref(props.savedGameId)
+const saving = ref(false)
+const justSaved = ref(false)
+
 onMounted(() => {
-  game = new Game()
+  if (props.initialState) {
+    const s = props.initialState
+    game = Game.restore(s.board, s.currentPlayer)
+    currentPlayer.value = s.currentPlayer
+    whiteCaptured.value = s.whiteCaptured
+    blackCaptured.value = s.blackCaptured
+    whiteTime.value = s.whiteTime ?? props.timerSeconds
+    blackTime.value = s.blackTime ?? props.timerSeconds
+  } else {
+    game = new Game()
+  }
   startTimer()
 })
 
@@ -178,7 +203,10 @@ function handleCellClick(row, col) {
         currentPlayer.value = result.nextPlayer
         rev.value++
         const w = game.checkWinner()
-        if (w) winner.value = w
+        if (w) {
+          winner.value = w
+          deleteSavedGame()
+        }
       } else {
         rev.value++
       }
@@ -186,6 +214,38 @@ function handleCellClick(row, col) {
   } else {
     selectPiece(row, col)
   }
+}
+
+async function saveGame() {
+  if (!game || saving.value) return
+  saving.value = true
+  try {
+    const body = {
+      id: savedId.value,
+      whiteName: props.whiteName,
+      blackName: props.blackName,
+      currentPlayer: currentPlayer.value,
+      whiteCaptured: whiteCaptured.value,
+      blackCaptured: blackCaptured.value,
+      timerSeconds: props.timerSeconds,
+      whiteTime: whiteTime.value,
+      blackTime: blackTime.value,
+      board: game.serialize()
+    }
+    const res = await $fetch('/api/local-games', { method: 'POST', body })
+    savedId.value = res.id
+    justSaved.value = true
+    setTimeout(() => { justSaved.value = false }, 2000)
+  } catch {}
+  saving.value = false
+}
+
+async function deleteSavedGame() {
+  if (!savedId.value) return
+  try {
+    await $fetch(`/api/local-games/${savedId.value}`, { method: 'DELETE' })
+    savedId.value = null
+  } catch {}
 }
 </script>
 
@@ -413,6 +473,29 @@ function handleCellClick(row, col) {
 .turn-badge.white { background: #d8d8d8; color: #262626; }
 .turn-badge.black { background: #262626; color: #d8d8d8; border: 1px solid rgba(255,255,255,0.15); }
 
+.controls-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.save-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.75);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s;
+  font-family: inherit;
+}
+.save-btn:hover:not(:disabled) { background: rgba(255,255,255,0.16); color: white; }
+.save-btn.saved { background: rgba(46,213,115,0.2); border-color: rgba(46,213,115,0.4); color: #2ed573; }
+.save-btn:disabled { opacity: 0.5; cursor: default; }
+
 .pause-btn {
   padding: 6px 16px;
   border-radius: 8px;
@@ -424,6 +507,7 @@ function handleCellClick(row, col) {
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.2s;
+  font-family: inherit;
 }
 .pause-btn:hover { background: rgba(255,34,0,0.3); }
 

@@ -199,7 +199,12 @@ async function recordStat(winnerColor) {
   try {
     await $fetch('/api/stats/record', {
       method: 'POST',
-      body: { mode: 'online', result: winnerColor === myColor.value ? 'win' : 'loss' }
+      body: {
+        mode: 'online',
+        result: winnerColor === myColor.value ? 'win' : 'loss',
+        opponent: oppName.value,
+        reason: endReason.value
+      }
     })
   } catch {}
 }

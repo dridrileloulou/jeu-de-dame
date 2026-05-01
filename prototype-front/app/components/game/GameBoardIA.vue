@@ -203,7 +203,12 @@ async function recordStat(winnerColor) {
   try {
     await $fetch('/api/stats/record', {
       method: 'POST',
-      body: { mode: 'ia', result: winnerColor === 'white' ? 'win' : 'loss' }
+      body: {
+        mode: 'ia',
+        result: winnerColor === 'white' ? 'win' : 'loss',
+        opponent: props.level,
+        reason: 'no_pieces'
+      }
     })
   } catch {}
 }

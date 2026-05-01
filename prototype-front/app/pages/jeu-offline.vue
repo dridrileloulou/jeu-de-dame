@@ -1,20 +1,46 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import GameBar from '../components/GameBar.vue'
 import GameBoardOffline from '../components/game/GameBoardOffline.vue'
+
+const route = useRoute()
 
 const started      = ref(false)
 const timerChoice  = ref('none')
 const customMins   = ref(5)
+const inputWhite   = ref('')
+const inputBlack   = ref('')
+
+const resumeState  = ref(null)
+const resumeId     = ref(null)
 
 const timerSeconds = computed(() => {
-  if (timerChoice.value === 'none')   return 0
-  if (timerChoice.value === '5min')   return 300
-  if (timerChoice.value === '10min')  return 600
+  if (resumeState.value)             return resumeState.value.timerSeconds ?? 0
+  if (timerChoice.value === 'none')  return 0
+  if (timerChoice.value === '5min')  return 300
+  if (timerChoice.value === '10min') return 600
   return customMins.value * 60
 })
 
+const whiteName = computed(() => resumeState.value?.whiteName || inputWhite.value.trim() || 'Blanc')
+const blackName = computed(() => resumeState.value?.blackName || inputBlack.value.trim() || 'Noir')
+
 function launch() { started.value = true }
+
+onMounted(async () => {
+  const id = route.query.resume?.toString()
+  if (!id) return
+  try {
+    const games = await $fetch('/api/local-games')
+    const g = games.find(g => g._id === id)
+    if (g) {
+      resumeState.value = g
+      resumeId.value    = g._id
+      started.value     = true
+    }
+  } catch {}
+})
 </script>
 
 <template>
@@ -41,6 +67,21 @@ function launch() { started.value = true }
           <p class="modal-sub">Deux joueurs sur le même écran, en alternance.</p>
 
           <div class="field">
+            <span class="field-label">Joueurs</span>
+            <div class="players-row">
+              <div class="player-input-wrap">
+                <span class="player-dot dot-black"></span>
+                <input v-model="inputBlack" type="text" maxlength="20" placeholder="Noir" class="player-input" />
+              </div>
+              <span class="players-vs">vs</span>
+              <div class="player-input-wrap">
+                <span class="player-dot dot-white"></span>
+                <input v-model="inputWhite" type="text" maxlength="20" placeholder="Blanc" class="player-input" />
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
             <span class="field-label">Temps par joueur</span>
             <div class="btn-group">
               <button
@@ -63,7 +104,13 @@ function launch() { started.value = true }
 
       <!-- Plateau -->
       <div v-if="started" class="board-wrap">
-        <GameBoardOffline :timer-seconds="timerSeconds" />
+        <GameBoardOffline
+          :timer-seconds="timerSeconds"
+          :white-name="whiteName"
+          :black-name="blackName"
+          :saved-game-id="resumeId"
+          :initial-state="resumeState"
+        />
       </div>
     </div>
   </div>
@@ -192,6 +239,54 @@ body { overflow: hidden; }
   font-size: 0.95rem; outline: none;
 }
 .num-label { font-size: 0.9rem; color: rgba(255,255,255,0.5); }
+
+.players-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.player-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 0.4rem 0.7rem;
+  transition: border-color 0.2s;
+}
+.player-input-wrap:focus-within { border-color: rgba(255,255,255,0.45); }
+
+.player-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-white { background: #e8e8e8; border: 1px solid rgba(0,0,0,0.25); }
+.dot-black { background: #222; border: 1px solid rgba(255,255,255,0.3); }
+
+.player-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: white;
+  font-size: 0.92rem;
+  font-family: inherit;
+  min-width: 0;
+}
+.player-input::placeholder { color: rgba(255,255,255,0.3); }
+
+.players-vs {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
 
 .btn-launch {
   margin-top: 0.4rem; padding: 0.78rem 1.4rem;

@@ -1,5 +1,6 @@
 import { Board } from './Board.js'
 import { Movement } from './Movement.js'
+import { Piece } from './Piece.js'
 
 export class Game {
   constructor() {
@@ -115,6 +116,35 @@ export class Game {
     const moves = Movement.getLegalMovesForPlayer(this.board, this.currentPlayer)
     if (moves.length === 0) return this.currentPlayer === 'white' ? 'black' : 'white'
     return null
+  }
+
+  // ── Serialization ──────────────────────────────────────────────────────────
+
+  serialize() {
+    return this.board.board.map(row =>
+      row.map(cell => cell === 0 ? null : { color: cell.color, isDraught: cell.isDraught })
+    )
+  }
+
+  static restore(boardData, currentPlayer) {
+    const g = new Game()
+    for (let y = 0; y < 10; y++) {
+      for (let x = 0; x < 10; x++) {
+        const cell = boardData[y][x]
+        if (!cell) {
+          g.board.board[y][x] = 0
+        } else {
+          const p = new Piece(cell.color, x, y)
+          p.isDraught = cell.isDraught
+          g.board.board[y][x] = p
+        }
+      }
+    }
+    g.currentPlayer = currentPlayer
+    g._selected = null
+    g._validMoves = []
+    g._updateMandatory()
+    return g
   }
 
   // ── Internal ───────────────────────────────────────────────────────────────
