@@ -1,5 +1,14 @@
 <script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
 import GameBar from '../components/GameBar.vue'
+
+const visible = ref(false)
+
+function onScroll() { visible.value = window.scrollY > 200 }
+function scrollTop() { window.scrollTo({ top: 0, behavior: 'smooth' }) }
+
+onMounted(() => window.addEventListener('scroll', onScroll))
+onUnmounted(() => window.removeEventListener('scroll', onScroll))
 </script>
 
 <template>
@@ -40,27 +49,6 @@ import GameBar from '../components/GameBar.vue'
               <p>Chaque joueur dispose de <strong>20 pions</strong> placés sur les 4 premières rangées de son côté, sur les cases sombres.</p>
             </div>
           </div>
-          <div class="visual-board">
-            <div class="vb-row">
-              <div v-for="c in 5" :key="c" class="vb-cell dark"><span class="vb-piece black"></span></div>
-            </div>
-            <div class="vb-row">
-              <div v-for="c in 5" :key="c" class="vb-cell dark"><span class="vb-piece black"></span></div>
-            </div>
-            <div class="vb-row empty">
-              <div v-for="c in 5" :key="c" class="vb-cell dark"></div>
-            </div>
-            <div class="vb-row empty">
-              <div v-for="c in 5" :key="c" class="vb-cell dark"></div>
-            </div>
-            <div class="vb-row">
-              <div v-for="c in 5" :key="c" class="vb-cell dark"><span class="vb-piece white"></span></div>
-            </div>
-            <div class="vb-row">
-              <div v-for="c in 5" :key="c" class="vb-cell dark"><span class="vb-piece white"></span></div>
-            </div>
-          </div>
-          <p class="caption">Disposition de départ (vue simplifiée)</p>
         </div>
       </section>
 
@@ -78,7 +66,7 @@ import GameBar from '../components/GameBar.vue'
             </li>
             <li>
               <span class="li-icon">▸</span>
-              <span>Un pion se déplace d'<strong>une case en diagonale vers l'avant</strong> uniquement, sur une case vide.</span>
+              <span>Un pion se déplace d'<strong>une case en diagonale vers l'avant</strong> uniquement, sur une case vide. Il peut toutefois reculer lors d'une <strong>prise</strong>.</span>
             </li>
             <li>
               <span class="li-icon">▸</span>
@@ -87,7 +75,7 @@ import GameBar from '../components/GameBar.vue'
           </ul>
           <div class="highlight-box">
             <span class="hb-icon">💡</span>
-            <p>Un pion ne peut <strong>jamais</strong> reculer, sauf s'il est promu en dame.</p>
+            <p>Hors prise, un pion ne peut <strong>jamais</strong> reculer. Seule la dame se déplace librement dans toutes les directions.</p>
           </div>
         </div>
       </section>
@@ -209,6 +197,10 @@ import GameBar from '../components/GameBar.vue'
       </div>
 
     </div>
+
+    <button class="scroll-top" :class="{ visible }" @click="scrollTop" aria-label="Retour en haut">
+      ↑
+    </button>
   </div>
 </template>
 
@@ -513,6 +505,40 @@ body { overflow-y: auto; }
   transition: background 0.2s, transform 0.15s;
 }
 .cta-btn:hover { background: #c8c8c8; transform: scale(1.02); }
+
+/* ── SCROLL TO TOP ── */
+.scroll-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(30,30,30,0.85);
+  backdrop-filter: blur(8px);
+  color: rgba(255,255,255,0.7);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(12px);
+  transition: opacity 0.25s, transform 0.25s, background 0.2s;
+  z-index: 50;
+}
+.scroll-top.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.scroll-top:hover {
+  background: rgba(60,60,60,0.95);
+  color: white;
+}
 
 /* ── RESPONSIVE ── */
 @media (max-width: 540px) {

@@ -4,7 +4,7 @@ const emit = defineEmits(['openBug'])
 
 <template>
   <footer class="footer-bar">
-    <span class="footer-copy">© 2025 Dam'eirb.fr</span>
+    <span class="footer-copy">© 2026 Dam'eirb.fr</span>
     <div class="footer-buttons">
       <NuxtLink to="/regles" class="btn-mode btn-footer">
         <span class="btn-icon">📖</span>
