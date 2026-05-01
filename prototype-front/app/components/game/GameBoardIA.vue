@@ -184,8 +184,13 @@ function handleCellClick(row, col) {
       }
       if (!result.continuation) {
         currentPlayer.value = result.nextPlayer
-        lastMoveFrom.value  = result.from
-        lastMoveTo.value    = result.to
+        if (movingPlayer === 'black') {
+          lastMoveFrom.value = result.from
+          lastMoveTo.value   = result.to
+        } else {
+          lastMoveFrom.value = null
+          lastMoveTo.value   = null
+        }
         rev.value++
         const w = game.checkWinner()
         if (w) { winner.value = w; recordStat(w) }
