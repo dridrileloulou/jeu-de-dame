@@ -24,6 +24,7 @@ const oppName       = ref('Adversaire')
 const statRecorded  = ref(false)
 const lastMoveFrom  = ref(null)
 const lastMoveTo    = ref(null)
+const resignConfirm = ref(false)
 let game = null
 
 // ── Timers ────────────────────────────────────────────────────────────────
@@ -336,9 +337,20 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
           <div class="turn-dot" :class="currentPlayer === 'white' ? 'dot-white' : 'dot-black'"></div>
           {{ turnLabel }}
         </div>
-        <button class="btn-resign" @click="sendMsg({ type: 'resign', code: props.code })">
-          🏳 Abandonner
-        </button>
+        <template v-if="!resignConfirm">
+          <button class="btn-resign" @click="resignConfirm = true">
+            🏳 Abandonner
+          </button>
+        </template>
+        <template v-else>
+          <div class="resign-confirm">
+            <span class="resign-confirm-label">Confirmer l'abandon ?</span>
+            <div class="resign-confirm-btns">
+              <button class="btn-resign-yes" @click="sendMsg({ type: 'resign', code: props.code })">Oui</button>
+              <button class="btn-resign-no"  @click="resignConfirm = false">Non</button>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -657,6 +669,47 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
   transition: background 0.2s;
 }
 .btn-resign:hover { background: rgba(255,34,0,0.35); }
+
+.resign-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255,34,0,0.5);
+  background: rgba(255,34,0,0.1);
+}
+.resign-confirm-label {
+  font-size: 0.78rem;
+  color: #ff6b6b;
+  text-align: center;
+  font-weight: 600;
+}
+.resign-confirm-btns {
+  display: flex;
+  gap: 0.4rem;
+}
+.btn-resign-yes, .btn-resign-no {
+  flex: 1;
+  padding: 0.3rem 0;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+.btn-resign-yes {
+  background: rgba(255,34,0,0.35);
+  color: #ff6b6b;
+}
+.btn-resign-yes:hover { background: rgba(255,34,0,0.55); }
+.btn-resign-no {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.7);
+}
+.btn-resign-no:hover { background: rgba(255,255,255,0.18); color: white; }
 
 /* ── Captures inline (side panels) ───────────────────────────── */
 .inline-caps {
