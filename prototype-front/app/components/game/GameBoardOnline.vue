@@ -266,7 +266,6 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
         </div>
       </div>
       <div class="end-btns">
-        <button class="btn-action btn-action--secondary" @click="$router.push('/jeu-online')">Rejouer</button>
         <button class="btn-action" @click="$router.push('/')">← Accueil</button>
       </div>
     </div>

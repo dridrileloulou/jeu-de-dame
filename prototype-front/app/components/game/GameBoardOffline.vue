@@ -19,7 +19,6 @@
         </div>
       </div>
       <div class="gameover-btns">
-        <button class="gameover-btn gameover-btn--secondary" @click="resetGame">Rejouer</button>
         <NuxtLink to="/" class="gameover-btn">← Accueil</NuxtLink>
       </div>
     </div>
