@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Game } from '../../engine/Game.js'
 
 const props = defineProps({
@@ -25,6 +25,31 @@ const statRecorded  = ref(false)
 const lastMoveFrom  = ref(null)
 const lastMoveTo    = ref(null)
 const resignConfirm = ref(false)
+
+// ── Chat ──────────────────────────────────────────────────────────────────
+const chatMessages = ref([])   // { from: 'me'|'opp', text: string }
+const chatInput    = ref('')
+const chatOpen     = ref(false)
+const unread       = ref(0)
+const chatListRef  = ref(null)
+
+function scrollChat() {
+  if (chatListRef.value) chatListRef.value.scrollTop = chatListRef.value.scrollHeight
+}
+
+function toggleChat() {
+  chatOpen.value = !chatOpen.value
+  if (chatOpen.value) { unread.value = 0; nextTick(scrollChat) }
+}
+
+function sendChat() {
+  const text = chatInput.value.trim()
+  if (!text || status.value !== 'playing') return
+  sendMsg({ type: 'chat', code: props.code, text })
+  chatMessages.value.push({ from: 'me', text })
+  chatInput.value = ''
+  nextTick(scrollChat)
+}
 let game = null
 
 // ── Timers ────────────────────────────────────────────────────────────────
@@ -117,6 +142,12 @@ function connect() {
     }
 
     if (d.type === 'error') status.value = 'error'
+
+    if (d.type === 'chat') {
+      chatMessages.value.push({ from: 'opp', text: d.text })
+      if (!chatOpen.value) unread.value++
+      nextTick(scrollChat)
+    }
   }
 
   ws.onclose = () => { if (status.value === 'playing') status.value = 'error' }
@@ -351,6 +382,33 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
             </div>
           </div>
         </template>
+
+        <!-- Chat -->
+        <div class="chat-panel">
+          <button class="chat-toggle" @click="toggleChat">
+            💬 Chat
+            <span v-if="unread > 0 && !chatOpen" class="chat-badge">{{ unread }}</span>
+          </button>
+          <div v-if="chatOpen" class="chat-body">
+            <div class="chat-messages" ref="chatListRef">
+              <div v-if="chatMessages.length === 0" class="chat-empty">Aucun message</div>
+              <div v-for="(m, i) in chatMessages" :key="i" class="chat-msg" :class="m.from">
+                <span class="chat-sender">{{ m.from === 'me' ? 'Moi' : oppName }}</span>
+                <span class="chat-text">{{ m.text }}</span>
+              </div>
+            </div>
+            <div class="chat-input-row">
+              <input
+                v-model="chatInput"
+                class="chat-input"
+                placeholder="Message…"
+                maxlength="300"
+                @keydown.enter.prevent="sendChat"
+              />
+              <button class="chat-send" @click="sendChat">↑</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -711,6 +769,131 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
 }
 .btn-resign-no:hover { background: rgba(255,255,255,0.18); color: white; }
 
+/* ── Chat ─────────────────────────────────────────────────────── */
+.chat-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.chat-toggle {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.75);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-family: inherit;
+}
+.chat-toggle:hover { background: rgba(255,255,255,0.14); color: white; }
+
+.chat-badge {
+  background: #ff6b6b;
+  color: white;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  line-height: 1.4;
+}
+
+.chat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+.chat-messages {
+  max-height: 180px;
+  min-height: 60px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+
+.chat-empty {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.28);
+  text-align: center;
+  padding: 0.6rem 0;
+}
+
+.chat-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-width: 90%;
+}
+.chat-msg.me  { align-self: flex-end;   align-items: flex-end; }
+.chat-msg.opp { align-self: flex-start; align-items: flex-start; }
+
+.chat-sender {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.38);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chat-text {
+  font-size: 0.83rem;
+  color: white;
+  line-height: 1.4;
+  word-break: break-word;
+  padding: 0.3rem 0.6rem;
+  border-radius: 10px;
+}
+.chat-msg.me  .chat-text { background: rgba(255,255,255,0.12); border-bottom-right-radius: 3px; }
+.chat-msg.opp .chat-text { background: rgba(255,255,255,0.07); border-bottom-left-radius: 3px; }
+
+.chat-input-row {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.chat-input {
+  flex: 1;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  color: white;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.5rem;
+  outline: none;
+  font-family: inherit;
+  min-width: 0;
+}
+.chat-input:focus { border-color: rgba(255,255,255,0.4); }
+.chat-input::placeholder { color: rgba(255,255,255,0.25); }
+
+.chat-send {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  line-height: 1;
+}
+.chat-send:hover { background: rgba(255,255,255,0.22); }
+
 /* ── Captures inline (side panels) ───────────────────────────── */
 .inline-caps {
   display: flex;
@@ -801,10 +984,18 @@ onUnmounted(() => { stopTimer(); if (ws) { ws.close(); ws = null } })
 
   .right-panel {
     flex-direction: row;
+    flex-wrap: wrap;
     min-width: unset;
     width: 100%;
     gap: 0.6rem;
   }
+
+  .chat-panel {
+    width: 100%;
+    order: 10;
+  }
+
+  .chat-messages { max-height: 120px; }
 
   .turn-indicator {
     flex: 1;

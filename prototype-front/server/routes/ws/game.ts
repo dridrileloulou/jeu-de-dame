@@ -68,6 +68,16 @@ export default defineWebSocketHandler({
       return
     }
 
+    // ── Chat ─────────────────────────────────────────────────────────────────
+    if (data.type === 'chat') {
+      const room = rooms.get(data.code?.toUpperCase())
+      if (!room || room.status !== 'playing') return
+      const isCreator = room.peerCreator === peer
+      const other = isCreator ? room.peerJoiner : room.peerCreator
+      if (other) other.send(JSON.stringify({ type: 'chat', text: String(data.text ?? '').slice(0, 300) }))
+      return
+    }
+
     // ── Abandon / Temps écoulé ────────────────────────────────────────────────
     if (data.type === 'resign' || data.type === 'time_up') {
       const room = rooms.get(data.code?.toUpperCase())
