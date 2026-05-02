@@ -34,7 +34,10 @@
     <div class="board-container">
       <div class="board" :class="{ paused: isPaused }">
         <div class="pause-overlay" v-if="isPaused">
-          <div class="pause-text">PAUSE</div>
+          <div class="pause-content">
+            <div class="pause-text">PAUSE</div>
+            <NuxtLink to="/" class="pause-home-btn">← Accueil</NuxtLink>
+          </div>
         </div>
         <div v-for="(_, row) in 10" :key="row" class="row">
           <div
@@ -88,11 +91,11 @@
             <span class="cap-count">{{ blackCaptured }}</span>
           </div>
         </div>
-        <button class="pause-btn" @click="togglePause">
-          {{ isPaused ? '▶ Reprendre' : '⏸ Pause' }}
+        <button v-if="loggedIn" class="save-pause-btn" :class="{ saved: justSaved && !isPaused, paused: isPaused }" :disabled="saving" @click="isPaused ? togglePause() : savePause()">
+          {{ isPaused ? '▶ Reprendre' : justSaved ? '✓ Sauvegardé' : saving ? '…' : '💾 Pause & Sauvegarder' }}
         </button>
-        <button v-if="loggedIn" class="save-btn" :class="{ saved: justSaved }" :disabled="saving" @click="saveGame">
-          {{ justSaved ? '✓ Sauvegardé' : saving ? '…' : '💾 Sauvegarder' }}
+        <button v-else class="pause-btn" @click="togglePause">
+          {{ isPaused ? '▶ Reprendre' : '⏸ Pause' }}
         </button>
       </div>
     </div>
@@ -150,6 +153,11 @@ watch(currentPlayer, (newVal) => {
 })
 
 function togglePause() { isPaused.value = !isPaused.value }
+
+async function savePause() {
+  isPaused.value = true
+  await saveGame()
+}
 
 async function saveGame() {
   if (!game || saving.value) return
@@ -505,6 +513,23 @@ async function aiPlay() {
   border: 1px solid #ccc;
 }
 
+.save-pause-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 2px solid #2ed573;
+  background: rgba(46, 213, 115, 0.15);
+  color: #2ed573;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.save-pause-btn:hover:not(:disabled) { background: rgba(46, 213, 115, 0.3); }
+.save-pause-btn.saved { border-color: #7bed9f; color: #7bed9f; }
+.save-pause-btn.paused { border-color: #ff2200; background: rgba(255,34,0,0.2); color: #ff2200; }
+.save-pause-btn.paused:hover { background: rgba(255,34,0,0.4); }
+.save-pause-btn:disabled { opacity: 0.5; cursor: default; }
+
 .pause-btn {
   width: 100%;
   padding: 12px;
@@ -515,36 +540,23 @@ async function aiPlay() {
   font-weight: bold;
   cursor: pointer;
 }
-
-.pause-btn:hover {
-  background: rgba(255, 34, 0, 0.4);
-}
-
-.save-btn {
-  width: 100%;
-  padding: 12px;
-  border-radius: 8px;
-  border: 2px solid #2ed573;
-  background: rgba(46, 213, 115, 0.15);
-  color: #2ed573;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.save-btn:hover:not(:disabled) { background: rgba(46, 213, 115, 0.3); }
-.save-btn.saved { border-color: #7bed9f; color: #7bed9f; }
-.save-btn:disabled { opacity: 0.5; cursor: default; }
+.pause-btn:hover { background: rgba(255, 34, 0, 0.4); }
 
 .pause-overlay {
   position: absolute;
   inset: 0;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   background: rgba(0, 0, 0, 0.3);
-  z-index: 10; /* au-dessus du blur */
+  z-index: 10;
+}
+
+.pause-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
 }
 
 .pause-text {
@@ -553,6 +565,20 @@ async function aiPlay() {
   color: #ff2200;
   text-shadow: 0 0 20px #ff2200;
 }
+
+.pause-home-btn {
+  padding: 8px 20px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+  z-index: 11;
+}
+.pause-home-btn:hover { background: rgba(255,255,255,0.22); }
 
 
 /* ── Game Over ──────────────────────────────────────────────── */

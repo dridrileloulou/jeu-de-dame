@@ -44,7 +44,10 @@
     <div class="board-area">
       <div class="board" :class="{ paused: isPaused }">
         <div class="pause-overlay" v-if="isPaused">
-          <div class="pause-text">PAUSE</div>
+          <div class="pause-content">
+            <div class="pause-text">PAUSE</div>
+            <NuxtLink to="/" class="pause-home-btn">← Accueil</NuxtLink>
+          </div>
         </div>
         <div v-for="(_, row) in 10" :key="row" class="row">
           <div
@@ -94,10 +97,10 @@
         {{ currentPlayer === 'white' ? `⬜ Tour : ${props.whiteName}` : `⬛ Tour : ${props.blackName}` }}
       </div>
       <div class="controls-right">
-        <button v-if="loggedIn" class="save-btn" :class="{ saved: justSaved }" :disabled="saving" @click="saveGame">
-          {{ justSaved ? '✓ Sauvegardé' : saving ? '…' : '💾 Sauvegarder' }}
+        <button v-if="loggedIn" class="save-pause-btn" :class="{ saved: justSaved && !isPaused, paused: isPaused }" :disabled="saving" @click="isPaused ? togglePause() : savePause()">
+          {{ isPaused ? '▶ Reprendre' : justSaved ? '✓ Sauvegardé' : saving ? '…' : '💾 Pause & Sauvegarder' }}
         </button>
-        <button class="pause-btn" @click="togglePause">
+        <button v-else class="pause-btn" @click="togglePause">
           {{ isPaused ? '▶ Reprendre' : '⏸ Pause' }}
         </button>
       </div>
@@ -165,6 +168,11 @@ function startTimer() {
 }
 
 function togglePause() { isPaused.value = !isPaused.value }
+
+async function savePause() {
+  isPaused.value = true
+  await saveGame()
+}
 
 function getPieceAt(x, y)         { rev.value; return game?.getPiece(x, y) ?? null }
 function isSelected(row, col)     { rev.value; return game?.isSelected(row, col) ?? false }
@@ -457,12 +465,31 @@ async function deleteSavedGame() {
   background: rgba(0,0,0,0.3);
   z-index: 10;
 }
+.pause-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
 .pause-text {
   font-size: clamp(1.5rem, 6vw, 3rem);
   font-weight: bold;
   color: #ff2200;
   text-shadow: 0 0 20px #ff2200;
 }
+.pause-home-btn {
+  padding: 8px 20px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+  z-index: 11;
+}
+.pause-home-btn:hover { background: rgba(255,255,255,0.22); }
 
 /* ── Barre de contrôles ───────────────────────────────────────── */
 .controls-bar {
@@ -491,22 +518,28 @@ async function deleteSavedGame() {
   gap: 0.5rem;
 }
 
-.save-btn {
-  padding: 6px 14px;
+.save-pause-btn {
+  padding: 6px 16px;
   border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.2);
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.75);
-  font-weight: 600;
-  font-size: 0.85rem;
+  border: 1px solid rgba(46,213,115,0.4);
+  background: rgba(46,213,115,0.12);
+  color: #2ed573;
+  font-weight: 700;
+  font-size: 0.88rem;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.2s, color 0.2s;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
   font-family: inherit;
 }
-.save-btn:hover:not(:disabled) { background: rgba(255,255,255,0.16); color: white; }
-.save-btn.saved { background: rgba(46,213,115,0.2); border-color: rgba(46,213,115,0.4); color: #2ed573; }
-.save-btn:disabled { opacity: 0.5; cursor: default; }
+.save-pause-btn:hover:not(:disabled) { background: rgba(46,213,115,0.25); }
+.save-pause-btn.saved { border-color: rgba(46,213,115,0.6); color: #7bed9f; }
+.save-pause-btn.paused {
+  border-color: rgba(255,34,0,0.5);
+  background: rgba(255,34,0,0.15);
+  color: #ff6b6b;
+}
+.save-pause-btn.paused:hover { background: rgba(255,34,0,0.3); }
+.save-pause-btn:disabled { opacity: 0.5; cursor: default; }
 
 .pause-btn {
   padding: 6px 16px;
