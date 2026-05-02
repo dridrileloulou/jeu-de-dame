@@ -2,19 +2,35 @@
   <div class="game">
     <div class="game-content">
       <NavMenu />
-      <GameBoardIA :level="level" />
+      <GameBoardIA :level="level" :saved-game-id="resumeId" :initial-state="resumeState" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import NavMenu from '../components/NavMenu.vue'
 import GameBoardIA from '../components/game/GameBoardIA.vue'
 
 const route = useRoute()
 const level = computed(() => route.query.level || 'normale')
+
+const resumeId    = ref(null)
+const resumeState = ref(null)
+
+onMounted(async () => {
+  const id = route.query.resume?.toString()
+  if (!id) return
+  try {
+    const games = await $fetch('/api/local-games')
+    const g = games.find(g => g._id === id)
+    if (g) {
+      resumeState.value = g
+      resumeId.value    = g._id
+    }
+  } catch {}
+})
 </script>
 
 <style>

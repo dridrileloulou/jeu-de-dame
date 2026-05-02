@@ -88,7 +88,7 @@ function formatDatetime(d) {
         <ul v-else class="game-list">
           <li v-for="g in ongoing" :key="g._id" class="game-item">
             <div class="ongoing-info">
-              <span class="ongoing-icon">👥</span>
+              <span class="ongoing-icon">{{ g.mode === 'ia' ? '🤖' : '👥' }}</span>
               <div class="ongoing-names">
                 <span class="ongoing-title">{{ g.whiteName }} vs {{ g.blackName }}</span>
                 <span class="ongoing-meta">
@@ -99,7 +99,7 @@ function formatDatetime(d) {
             </div>
             <div class="ongoing-actions">
               <NuxtLink
-                :to="`/jeu-offline?resume=${g._id}`"
+                :to="g.mode === 'ia' ? `/jeu-ia?resume=${g._id}&level=${g.level}` : `/jeu-offline?resume=${g._id}`"
                 class="btn-resume"
                 @click="emit('close')"
               >▶ Reprendre</NuxtLink>

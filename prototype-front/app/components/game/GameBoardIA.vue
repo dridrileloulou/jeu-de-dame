@@ -26,18 +26,6 @@
       </div>
     </div>
 
-    <div class="timers-container" v-if="gameMode === 'local'">
-      <PlayerTimer
-        :time-remaining="blackTime"
-        color="black"
-        :is-active="currentPlayer === 'black'"
-      />
-      <PlayerTimer
-        :time-remaining="whiteTime"
-        color="white"
-        :is-active="currentPlayer === 'white'"
-      />
-    </div>
     <div class="board-section">
       <div class="turn-banner" :class="currentPlayer">
         <span class="turn-dot-sm" :class="currentPlayer === 'white' ? 'dot-white' : 'dot-black'"></span>
@@ -103,6 +91,9 @@
         <button class="pause-btn" @click="togglePause">
           {{ isPaused ? '▶ Reprendre' : '⏸ Pause' }}
         </button>
+        <button v-if="loggedIn" class="save-btn" :class="{ saved: justSaved }" :disabled="saving" @click="saveGame">
+          {{ justSaved ? '✓ Sauvegardé' : saving ? '…' : '💾 Sauvegarder' }}
+        </button>
       </div>
     </div>
     </div><!-- board-section -->
@@ -113,30 +104,41 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { Game } from '../../engine/Game.js'
 import PlayerTurn from './PlayerTurn.vue'
-import PlayerTimer from './PlayerTimer.vue'
 
 const props = defineProps({
-  gameMode: { type: String, default: 'local' },
-  level:    { type: String, default: 'normale' }
+  gameMode:     { type: String, default: 'local' },
+  level:        { type: String, default: 'normale' },
+  savedGameId:  { type: String, default: null },
+  initialState: { type: Object, default: null }
 })
+
+const { loggedIn } = useUserSession()
 
 let game = null
 const rev = ref(0)
 const currentPlayer = ref('white')
-const whiteTime = ref(600)
-const blackTime = ref(600)
 const isPaused = ref(false)
 const winner = ref(null)
 const whiteCaptured = ref(0)
 const blackCaptured = ref(0)
 const lastMoveFrom = ref(null)
 const lastMoveTo   = ref(null)
-let timerInterval = null
+
+const savedId   = ref(props.savedGameId)
+const saving    = ref(false)
+const justSaved = ref(false)
 
 onMounted(() => {
-  game = new Game()
-  startTimer()
-  // Au cas où l'IA commence (pas censé arriver en blanc, mais sait-on jamais)
+  if (props.initialState) {
+    const s = props.initialState
+    game = Game.restore(s.board, s.currentPlayer)
+    currentPlayer.value = s.currentPlayer
+    whiteCaptured.value = s.whiteCaptured
+    blackCaptured.value = s.blackCaptured
+  } else {
+    game = new Game()
+  }
+  rev.value++
   if (currentPlayer.value === 'black') aiPlay()
 })
 
@@ -147,17 +149,43 @@ watch(currentPlayer, (newVal) => {
   }
 })
 
-onUnmounted(() => { if (timerInterval) clearInterval(timerInterval) })
+function togglePause() { isPaused.value = !isPaused.value }
 
-function startTimer() {
-  timerInterval = setInterval(() => {
-    if (isPaused.value || props.gameMode !== 'local') return
-    if (currentPlayer.value === 'white' && whiteTime.value > 0) whiteTime.value--
-    else if (currentPlayer.value === 'black' && blackTime.value > 0) blackTime.value--
-  }, 1000)
+async function saveGame() {
+  if (!game || saving.value) return
+  saving.value = true
+  try {
+    const res = await $fetch('/api/local-games', {
+      method: 'POST',
+      body: {
+        id: savedId.value,
+        whiteName: 'Joueur',
+        blackName: `IA (${props.level})`,
+        currentPlayer: currentPlayer.value,
+        whiteCaptured: whiteCaptured.value,
+        blackCaptured: blackCaptured.value,
+        timerSeconds: 0,
+        whiteTime: 0,
+        blackTime: 0,
+        board: game.serialize(),
+        mode: 'ia',
+        level: props.level
+      }
+    })
+    savedId.value = res.id
+    justSaved.value = true
+    setTimeout(() => { justSaved.value = false }, 2000)
+  } catch {}
+  saving.value = false
 }
 
-function togglePause() { isPaused.value = !isPaused.value }
+async function deleteSavedGame() {
+  if (!savedId.value) return
+  try {
+    await $fetch(`/api/local-games/${savedId.value}`, { method: 'DELETE' })
+    savedId.value = null
+  } catch {}
+}
 
 function getPieceAt(x, y)         { rev.value; return game?.getPiece(x, y) ?? null }
 function isSelected(row, col)     { rev.value; return game?.isSelected(row, col) ?? false }
@@ -203,7 +231,7 @@ function handleCellClick(row, col) {
         }
         rev.value++
         const w = game.checkWinner()
-        if (w) { winner.value = w; recordStat(w) }
+        if (w) { winner.value = w; recordStat(w); deleteSavedGame() }
       } else {
         rev.value++
       }
@@ -276,7 +304,7 @@ async function aiPlay() {
           rev.value++
           
           const w = game.checkWinner()
-          if (w) { winner.value = w; recordStat(w) }
+          if (w) { winner.value = w; recordStat(w); deleteSavedGame() }
         }
       }
     }
@@ -492,6 +520,21 @@ async function aiPlay() {
   background: rgba(255, 34, 0, 0.4);
 }
 
+.save-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 2px solid #2ed573;
+  background: rgba(46, 213, 115, 0.15);
+  color: #2ed573;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.save-btn:hover:not(:disabled) { background: rgba(46, 213, 115, 0.3); }
+.save-btn.saved { border-color: #7bed9f; color: #7bed9f; }
+.save-btn:disabled { opacity: 0.5; cursor: default; }
+
 .pause-overlay {
   position: absolute;
   inset: 0;
@@ -511,11 +554,6 @@ async function aiPlay() {
   text-shadow: 0 0 20px #ff2200;
 }
 
-.timers-container {
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
-}
 
 /* ── Game Over ──────────────────────────────────────────────── */
 .gameover-overlay {
