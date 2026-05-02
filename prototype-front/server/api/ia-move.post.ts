@@ -2,7 +2,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event);
   
   // URL du service nuxt_IA (variable d'env sur Railway, localhost en dev)
-  const IA_URL = process.env.NUXT_IA_URL || 'http://localhost:3001';
+  const IA_URL = process.env.NUXT_IA_URL || 'http://127.0.0.1:3001';
 
   try {
     const response = await $fetch(`${IA_URL}/api/dames`, {

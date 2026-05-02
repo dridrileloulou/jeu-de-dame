@@ -28,7 +28,7 @@ const emit = defineEmits(['start-ia', 'open-auth', 'open-saved-games', 'open-sho
           </NuxtLink>
           <button class="btn-mode" @click="emit('start-ia')">
             <span class="btn-icon">🤖</span>
-            Jouer contre une IAs
+            Jouer contre une IA
           </button>
         </template>
 

@@ -3,7 +3,7 @@ export default defineEventHandler(async (event) => {
   const { level } = body;
 
   // URL du service nuxt_IA (variable d'env sur Railway, localhost en dev)
-  const IA_URL = process.env.NUXT_IA_URL || 'http://localhost:3001';
+  const IA_URL = process.env.NUXT_IA_URL || 'http://127.0.0.1:3001';
 
   console.log(`[API] Délégation du lancement du bot au service IA (${IA_URL})`);
 

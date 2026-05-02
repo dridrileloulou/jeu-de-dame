@@ -64,7 +64,7 @@ onMounted(() => {
     <GameModePanel
       :logged-in="loggedIn"
       :user="user"
-      @start-ia="startIA"
+      @start-ia="() => { console.log('Bouton IA cliqué'); startIA(); }"
       @open-auth="showAuthModal = true"
       @open-saved-games="showSavedGamesModal = true"
       @open-shop="showShopModal = true"
