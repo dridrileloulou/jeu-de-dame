@@ -2,13 +2,12 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "cd prototype-front && npm ci && npm run build"
+    "buildCommand": "cd prototype-front && npm ci && npm run build && cd ../nuxt_IA && npm ci && npm run build && cd .."
   },
   "deploy": {
-    "startCommand": "node prototype-front/.output/server/index.mjs",
+    "startCommand": "bash start.sh",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
 }
-
 

@@ -30,8 +30,16 @@ function startIA() {
   showDifficulty.value = true
 }
 
-function confirmDifficulty(level) {
-  router.push(`/jeu-ia?level=${level}`)
+async function confirmDifficulty(level) {
+  try {
+    await $fetch('/api/launch-ia', {
+      method: 'POST',
+      body: { level: level }
+    })
+  } catch (err) {
+    console.error('Erreur lors du lancement de l\'IA :', err)
+  }
+  showDifficulty.value = false
 }
 
 const showBugModal = ref(false)
