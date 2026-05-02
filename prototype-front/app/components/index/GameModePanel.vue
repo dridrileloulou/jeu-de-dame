@@ -10,7 +10,7 @@ defineProps({
   }
 })
 
-const emit = defineEmits(['startIA', 'openAuth', 'openSavedGames', 'openShop'])
+const emit = defineEmits(['start-ia', 'open-auth', 'open-saved-games', 'open-shop'])
 </script>
 
 <template>
@@ -26,13 +26,13 @@ const emit = defineEmits(['startIA', 'openAuth', 'openSavedGames', 'openShop'])
             <span class="btn-icon">🌐</span>
             Jouer en ligne
           </NuxtLink>
-          <button class="btn-mode" @click="emit('startIA')">
+          <button class="btn-mode" @click="emit('start-ia')">
             <span class="btn-icon">🤖</span>
             Jouer contre une IA
           </button>
         </template>
 
-        <p v-else class="connect-hint" @click="emit('openAuth')">
+        <p v-else class="connect-hint" @click="emit('open-auth')">
           🔒 Connectez-vous pour jouer en ligne ou contre une IA
         </p>
 
@@ -44,11 +44,11 @@ const emit = defineEmits(['startIA', 'openAuth', 'openSavedGames', 'openShop'])
 
       <!-- BOUTONS CARRÉS SOMBRES -->
       <div v-if="loggedIn" class="square-buttons">
-        <button class="btn-square" @click="emit('openSavedGames')">
+        <button class="btn-square" @click="emit('open-saved-games')">
           <span class="square-icon">💾</span>
           <span class="square-label">Mes parties</span>
         </button>
-        <button class="btn-square" @click="emit('openShop')">
+        <button class="btn-square" @click="emit('open-shop')">
           <span class="square-icon">🛒</span>
           <span class="square-label">Boutique</span>
         </button>

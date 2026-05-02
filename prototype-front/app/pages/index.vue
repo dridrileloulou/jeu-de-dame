@@ -30,8 +30,17 @@ function startIA() {
   showDifficulty.value = true
 }
 
-function confirmDifficulty(level) {
-  router.push(`/jeu-ia?level=${level}`)
+async function confirmDifficulty(level) {
+  try {
+    await $fetch('/api/launch-ia', {
+      method: 'POST',
+      body: { level: level }
+    })
+    router.push({ path: '/jeu-ia', query: { level } })
+  } catch (err) {
+    console.error('Erreur lors du lancement de l\'IA :', err)
+  }
+  showDifficulty.value = false
 }
 
 const showBugModal = ref(false)
@@ -55,7 +64,7 @@ onMounted(() => {
     <GameModePanel
       :logged-in="loggedIn"
       :user="user"
-      @start-ia="startIA"
+      @start-ia="() => { console.log('Bouton IA cliqué'); startIA(); }"
       @open-auth="showAuthModal = true"
       @open-saved-games="showSavedGamesModal = true"
       @open-shop="showShopModal = true"
