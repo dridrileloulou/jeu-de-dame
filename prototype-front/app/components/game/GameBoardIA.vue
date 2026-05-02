@@ -71,7 +71,8 @@
                 black: getPieceAt(col, row)?.color === 'black',
                 white: getPieceAt(col, row)?.color === 'white',
                 draught: getPieceAt(col, row)?.isDraught,
-                mandatoryCapture: isMandatoryCapture(row, col)
+                mandatoryCapture: isMandatoryCapture(row, col),
+                locked: currentPlayer === 'black' || getPieceAt(col, row)?.color === 'black'
               }"
               @click.stop="selectPiece(row, col)"
             />
@@ -109,7 +110,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { Game } from '../../engine/Game.js'
 import PlayerTurn from './PlayerTurn.vue'
 import PlayerTimer from './PlayerTimer.vue'
@@ -135,6 +136,15 @@ let timerInterval = null
 onMounted(() => {
   game = new Game()
   startTimer()
+  // Au cas où l'IA commence (pas censé arriver en blanc, mais sait-on jamais)
+  if (currentPlayer.value === 'black') aiPlay()
+})
+
+watch(currentPlayer, (newVal) => {
+  if (newVal === 'black' && !winner.value) {
+    // Petit délai pour le réalisme
+    setTimeout(aiPlay, 800)
+  }
 })
 
 onUnmounted(() => { if (timerInterval) clearInterval(timerInterval) })
@@ -155,7 +165,7 @@ function isValidMove(row, col)    { rev.value; return game?.isValidMove(row, col
 function isMandatoryCapture(r, c) { rev.value; return game?.isMandatory(r, c) ?? false }
 
 function selectPiece(row, col) {
-  if (!game) return
+  if (!game || currentPlayer.value === 'black') return
   game.selectPiece(row, col)
   rev.value++
 }
@@ -173,7 +183,7 @@ function resetGame() {
 }
 
 function handleCellClick(row, col) {
-  if (isPaused.value || !game || winner.value) return
+  if (isPaused.value || !game || winner.value || currentPlayer.value === 'black') return
   if (game.isValidMove(row, col)) {
     const movingPlayer = currentPlayer.value
     const result = game.executeMove(row, col)
@@ -215,6 +225,64 @@ async function recordStat(winnerColor) {
       }
     })
   } catch {}
+}
+
+async function aiPlay() {
+  if (!game || winner.value || isPaused.value) return
+
+  // 1. Préparer le plateau pour l'API (0=vide, 1=humain/blanc, 2=IA/noir)
+  const boardMatrix = game.board.board.map(row => 
+    row.map(cell => {
+      if (cell === 0 || cell == null) return 0
+      return cell.color === 'white' ? 2 : 1 // 1=IA, 2=Joueur selon nuxt_IA/dames.post.ts
+    })
+  )
+
+  // Mapping difficulté
+  const levelMap = { 'facile': 1, 'normale': 2, 'normal': 2, 'difficile': 3, 'expert': 4 }
+  const levelNum = levelMap[props.level] || 2
+
+  try {
+    const data = await $fetch('/api/ia-move', {
+      method: 'POST',
+      body: {
+        board: boardMatrix,
+        level: levelNum,
+        player: 1 // On demande à l'IA de jouer le pion 1 (Noir)
+      }
+    })
+
+    if (data.aiMove) {
+      // Format attendu: "r1,c1 r2,c2"
+      const [start, end] = data.aiMove.split(' ')
+      const [r1, c1] = start.split(',').map(Number)
+      const [r2, c2] = end.split(',').map(Number)
+
+      // Exécuter le mouvement sur le moteur
+      game.selectPiece(r1, c1, 'black')
+      const result = game.executeMove(r2, c2)
+      
+      if (result) {
+        if (result.captured) blackCaptured.value++
+        
+        if (result.continuation) {
+          // Si rafle, l'IA rejoue immédiatement
+          rev.value++
+          setTimeout(aiPlay, 600)
+        } else {
+          currentPlayer.value = result.nextPlayer
+          lastMoveFrom.value = result.from
+          lastMoveTo.value = result.to
+          rev.value++
+          
+          const w = game.checkWinner()
+          if (w) { winner.value = w; recordStat(w) }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Erreur IA Play:', err)
+  }
 }
 </script>
 
@@ -328,6 +396,11 @@ async function recordStat(winnerColor) {
 .piece.selected {
   box-shadow: 0 0 12px 4px gold, inset 0 -4px 6px rgba(0,0,0,0.3);
   transform: scale(1.1);
+}
+
+.piece.locked {
+  cursor: default;
+  opacity: 0.8;
 }
 
 .piece.mandatoryCapture {

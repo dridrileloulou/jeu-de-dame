@@ -36,6 +36,7 @@ async function confirmDifficulty(level) {
       method: 'POST',
       body: { level: level }
     })
+    router.push({ path: '/jeu-ia', query: { level } })
   } catch (err) {
     console.error('Erreur lors du lancement de l\'IA :', err)
   }

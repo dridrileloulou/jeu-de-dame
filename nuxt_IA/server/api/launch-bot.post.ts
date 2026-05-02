@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Niveau invalide' });
   }
 
-  const scriptDir = path.resolve(process.cwd(), 'ia_levels');
+  const scriptDir = path.resolve(process.cwd(), 'nuxt_IA', 'ia_levels');
   const scriptPath = path.resolve(scriptDir, scriptName);
 
   console.log(`[nuxt_IA] Lancement du bot : ${scriptName}`);
