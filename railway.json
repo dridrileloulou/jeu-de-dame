@@ -5,7 +5,7 @@
     "buildCommand": "npm run build"
   },
   "deploy": {
-    "startCommand": "bash /app/start.sh",
+    "startCommand": "export FRONTEND_URL=\"http://localhost:${PORT:-3000}\" && export PUPPETEER_EXECUTABLE_PATH=\"${PUPPETEER_EXECUTABLE_PATH:-/usr/bin/chromium}\" && PORT=3001 node nuxt_IA/.output/server/index.mjs & exec node prototype-front/.output/server/index.mjs",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
