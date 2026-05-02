@@ -149,6 +149,7 @@ onMounted(() => {
   } else {
     game = new Game()
   }
+  rev.value++
   startTimer()
 })
 
