@@ -2,7 +2,7 @@
   <div class="game">
     <div class="game-content">
       <NavMenu />
-      <GameBoardIA :level="level" :saved-game-id="resumeId" :initial-state="resumeState" />
+      <GameBoardIA v-if="ready" :level="level" :saved-game-id="resumeId" :initial-state="resumeState" />
     </div>
   </div>
 </template>
@@ -18,10 +18,11 @@ const level = computed(() => route.query.level || 'normale')
 
 const resumeId    = ref(null)
 const resumeState = ref(null)
+const ready       = ref(false)
 
 onMounted(async () => {
   const id = route.query.resume?.toString()
-  if (!id) return
+  if (!id) { ready.value = true; return }
   try {
     const games = await $fetch('/api/local-games')
     const g = games.find(g => g._id === id)
@@ -30,6 +31,7 @@ onMounted(async () => {
       resumeId.value    = g._id
     }
   } catch {}
+  ready.value = true
 })
 </script>
 
