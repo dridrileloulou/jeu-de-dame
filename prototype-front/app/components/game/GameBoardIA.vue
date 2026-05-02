@@ -266,58 +266,67 @@ async function recordStat(winnerColor) {
 async function aiPlay() {
   if (!game || winner.value || isPaused.value) return
 
-  // 1. Préparer le plateau pour l'API (0=vide, 1=humain/blanc, 2=IA/noir)
-  const boardMatrix = game.board.board.map(row => 
+  const boardMatrix = game.board.board.map(row =>
     row.map(cell => {
       if (cell === 0 || cell == null) return 0
-      return cell.color === 'white' ? 2 : 1 // 1=IA, 2=Joueur selon nuxt_IA/dames.post.ts
+      return cell.color === 'white' ? 2 : 1
     })
   )
 
-  // Mapping difficulté
   const levelMap = { 'facile': 1, 'normale': 2, 'normal': 2, 'difficile': 3, 'expert': 4 }
   const levelNum = levelMap[props.level] || 2
 
   try {
     const data = await $fetch('/api/ia-move', {
       method: 'POST',
-      body: {
-        board: boardMatrix,
-        level: levelNum,
-        player: 1 // On demande à l'IA de jouer le pion 1 (Noir)
-      }
+      body: { board: boardMatrix, level: levelNum, player: 1 }
     })
 
-    if (data.aiMove) {
-      // Format attendu: "r1,c1 r2,c2"
-      const [start, end] = data.aiMove.split(' ')
-      const [r1, c1] = start.split(',').map(Number)
-      const [r2, c2] = end.split(',').map(Number)
-
-      // Exécuter le mouvement sur le moteur
-      game.selectPiece(r1, c1, 'black')
-      const result = game.executeMove(r2, c2)
-      
-      if (result) {
-        if (result.captured) blackCaptured.value++
-        
-        if (result.continuation) {
-          // Si rafle, l'IA rejoue immédiatement
-          rev.value++
-          setTimeout(aiPlay, 600)
-        } else {
-          currentPlayer.value = result.nextPlayer
-          lastMoveFrom.value = result.from
-          lastMoveTo.value = result.to
-          rev.value++
-          
-          const w = game.checkWinner()
-          if (w) { winner.value = w; recordStat(w); deleteSavedGame() }
-        }
-      }
-    }
+    if (data.aiMove && applyAiMove(data.aiMove)) return
+    console.warn('[IA] Move rejected by engine:', data.aiMove, '— using local fallback')
   } catch (err) {
     console.error('Erreur IA Play:', err)
+  }
+
+  applyLocalFallback()
+}
+
+function applyAiMove(moveStr) {
+  const parts = moveStr.trim().split(' ')
+  if (parts.length < 2) return false
+  const [r1, c1] = parts[0].split(',').map(Number)
+  const [r2, c2] = parts[1].split(',').map(Number)
+  if (!game.selectPiece(r1, c1, 'black')) return false
+  const result = game.executeMove(r2, c2)
+  if (!result) return false
+  commitAiResult(result)
+  return true
+}
+
+function applyLocalFallback() {
+  for (let row = 0; row < 10; row++) {
+    for (let col = 0; col < 10; col++) {
+      if (game.selectPiece(row, col, 'black') && game._validMoves.length > 0) {
+        const m = game._validMoves[0]
+        const result = game.executeMove(m.y, m.x)
+        if (result) { commitAiResult(result); return }
+      }
+    }
+  }
+}
+
+function commitAiResult(result) {
+  if (result.captured) blackCaptured.value++
+  if (result.continuation) {
+    rev.value++
+    setTimeout(aiPlay, 600)
+  } else {
+    currentPlayer.value = result.nextPlayer
+    lastMoveFrom.value = result.from
+    lastMoveTo.value = result.to
+    rev.value++
+    const w = game.checkWinner()
+    if (w) { winner.value = w; recordStat(w); deleteSavedGame() }
   }
 }
 </script>
