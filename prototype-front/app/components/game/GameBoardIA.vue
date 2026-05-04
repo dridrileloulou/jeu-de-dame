@@ -48,8 +48,8 @@
               dark:        (row + col) % 2 === 0,
               light:       (row + col) % 2 !== 0,
               shadowed:    isValidMove(row, col),
-              'last-from': lastMoveFrom && lastMoveFrom.x === col && lastMoveFrom.y === row,
-              'last-to':   lastMoveTo   && lastMoveTo.x   === col && lastMoveTo.y   === row,
+              'last-from': lastMovePath.length >= 1 && lastMovePath[0]?.x === col && lastMovePath[0]?.y === row,
+              'last-to':   lastMovePath.length >= 2 && lastMovePath[lastMovePath.length-1]?.x === col && lastMovePath[lastMovePath.length-1]?.y === row,
             }"
             @click="handleCellClick(row, col)"
           >
@@ -70,24 +70,23 @@
           </div>
         </div>
 
-        <!-- Flèche SVG du dernier coup IA -->
+        <!-- Flèches SVG du dernier coup IA (une par saut pour les prises multiples) -->
         <svg
-          v-if="arrowCoords"
+          v-if="arrowSegments.length"
           class="move-arrow"
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
         >
           <defs>
-            <marker id="ia-arrowhead" markerWidth="4" markerHeight="4" refX="3.5" refY="2" orient="auto">
-              <path d="M0,0 L4,2 L0,4 Z" fill="rgba(210,160,50,0.65)" />
+            <marker id="ia-arrowhead" markerWidth="4" markerHeight="4" refX="4" refY="2" orient="auto">
+              <path d="M0,0 L4,2 L0,4 Z" fill="rgba(210,160,50,0.75)" />
             </marker>
           </defs>
           <line
-            :x1="arrowCoords.x1"
-            :y1="arrowCoords.y1"
-            :x2="arrowCoords.x2"
-            :y2="arrowCoords.y2"
-            stroke="rgba(210,160,50,0.5)"
+            v-for="(seg, i) in arrowSegments"
+            :key="i"
+            :x1="seg.x1" :y1="seg.y1" :x2="seg.x2" :y2="seg.y2"
+            stroke="rgba(210,160,50,0.55)"
             stroke-width="1.1"
             stroke-linecap="round"
             marker-end="url(#ia-arrowhead)"
@@ -150,8 +149,8 @@ const isPaused = ref(false)
 const winner = ref(null)
 const whiteCaptured = ref(0)
 const blackCaptured = ref(0)
-const lastMoveFrom = ref(null)
-const lastMoveTo   = ref(null)
+const lastMovePath = ref([])   // [{x,y}, ...] full AI move path (multi-capture)
+let aiMovePathBuffer = []      // accumulates segments during a multi-jump turn
 
 const savedId   = ref(props.savedGameId)
 const saving    = ref(false)
@@ -168,13 +167,12 @@ onMounted(() => {
     game = new Game()
   }
   rev.value++
-  if (currentPlayer.value === 'black') aiPlay()
+  if (currentPlayer.value === 'black') aiPlay(false)
 })
 
 watch(currentPlayer, (newVal) => {
   if (newVal === 'black' && !winner.value) {
-    // Petit délai pour le réalisme
-    setTimeout(aiPlay, 800)
+    setTimeout(() => aiPlay(false), 800)
   }
 })
 
@@ -221,23 +219,22 @@ async function deleteSavedGame() {
   } catch {}
 }
 
-// Coordonnées SVG de la flèche, raccourcies pour ne pas chevaucher les pions
-const arrowCoords = computed(() => {
-  if (!lastMoveFrom.value || !lastMoveTo.value) return null
-  const fx = (lastMoveFrom.value.x + 0.5) * 10
-  const fy = (lastMoveFrom.value.y + 0.5) * 10
-  const tx = (lastMoveTo.value.x + 0.5) * 10
-  const ty = (lastMoveTo.value.y + 0.5) * 10
-  const dx = tx - fx, dy = ty - fy
-  const len = Math.sqrt(dx * dx + dy * dy)
-  if (len === 0) return null
-  const ux = dx / len, uy = dy / len
-  return {
-    x1: fx + ux * 4,   // départ : après le bord du pion source
-    y1: fy + uy * 4,
-    x2: tx - ux * 4.5, // arrivée : avant le bord du pion destination
-    y2: ty - uy * 4.5,
+// Segments SVG pour chaque saut du coup IA (supporte les prises multiples)
+const arrowSegments = computed(() => {
+  const path = lastMovePath.value
+  if (!path || path.length < 2) return []
+  const segments = []
+  for (let i = 0; i < path.length - 1; i++) {
+    const f = path[i], t = path[i + 1]
+    const fx = (f.x + 0.5) * 10, fy = (f.y + 0.5) * 10
+    const tx = (t.x + 0.5) * 10, ty = (t.y + 0.5) * 10
+    const dx = tx - fx, dy = ty - fy
+    const len = Math.sqrt(dx * dx + dy * dy)
+    if (len === 0) continue
+    const ux = dx / len, uy = dy / len
+    segments.push({ x1: fx + ux * 4.2, y1: fy + uy * 4.2, x2: tx - ux * 4.5, y2: ty - uy * 4.5 })
   }
+  return segments
 })
 
 function getPieceAt(x, y)         { rev.value; return game?.getPiece(x, y) ?? null }
@@ -258,8 +255,8 @@ function resetGame() {
   blackCaptured.value = 0
   winner.value = null
   isPaused.value = false
-  lastMoveFrom.value = null
-  lastMoveTo.value   = null
+  lastMovePath.value = []
+  aiMovePathBuffer = []
   rev.value++
 }
 
@@ -275,12 +272,10 @@ async function handleCellClick(row, col) {
       }
       if (!result.continuation) {
         // Effacer la trace du coup IA dès que le joueur joue
-        if (movingPlayer === 'white') {
-          lastMoveFrom.value = null
-          lastMoveTo.value   = null
-        }
+        lastMovePath.value = []
+        aiMovePathBuffer = []
         // Attendre l'analyse coach avant de laisser l'IA jouer (max 8s)
-        if (movingPlayer === 'white' && props.onPlayerMove) {
+        if (props.onPlayerMove) {
           const boardMatrix = game.board.board.map(r =>
             r.map(cell => (cell === 0 || cell == null) ? 0 : cell.color === 'white' ? 2 : 1)
           )
@@ -290,13 +285,6 @@ async function handleCellClick(row, col) {
           ])
         }
         currentPlayer.value = result.nextPlayer
-        if (movingPlayer === 'black') {
-          lastMoveFrom.value = result.from
-          lastMoveTo.value   = result.to
-        } else {
-          lastMoveFrom.value = null
-          lastMoveTo.value   = null
-        }
         rev.value++
         const w = game.checkWinner()
         if (w) { winner.value = w; recordStat(w); deleteSavedGame() }
@@ -323,8 +311,9 @@ async function recordStat(winnerColor) {
   } catch {}
 }
 
-async function aiPlay() {
+async function aiPlay(isContinuation = false) {
   if (!game || winner.value || isPaused.value) return
+  if (!isContinuation) aiMovePathBuffer = []
 
   const boardMatrix = game.board.board.map(row =>
     row.map(cell => {
@@ -387,13 +376,15 @@ function applyLocalFallback() {
 
 function commitAiResult(result) {
   if (result.captured) blackCaptured.value++
+  // Accumulate path: push from only on first segment, then always push to
+  if (aiMovePathBuffer.length === 0) aiMovePathBuffer.push(result.from)
+  aiMovePathBuffer.push(result.to)
+  lastMovePath.value = [...aiMovePathBuffer]
   if (result.continuation) {
     rev.value++
-    setTimeout(aiPlay, 600)
+    setTimeout(() => aiPlay(true), 600)
   } else {
     currentPlayer.value = result.nextPlayer
-    lastMoveFrom.value = result.from
-    lastMoveTo.value = result.to
     rev.value++
     const w = game.checkWinner()
     if (w) { winner.value = w; recordStat(w); deleteSavedGame() }
