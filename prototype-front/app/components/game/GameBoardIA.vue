@@ -170,7 +170,7 @@ let aiMovePathBuffer = []      // accumulates segments during a multi-jump turn
 
 const debrief        = ref(null)
 const debriefLoading = ref(false)
-let moveHistory: { player: string, from: any, to: any, captured: boolean }[] = []
+let moveHistory = []
 
 const savedId   = ref(props.savedGameId)
 const saving    = ref(false)
@@ -335,7 +335,7 @@ async function recordStat(winnerColor) {
   } catch {}
 }
 
-async function fetchDebrief(winnerColor: string) {
+async function fetchDebrief(winnerColor) {
   debriefLoading.value = true
   try {
     const data = await $fetch('/api/game-debrief', {
@@ -347,7 +347,7 @@ async function fetchDebrief(winnerColor: string) {
         blackCaptured: blackCaptured.value,
       }
     })
-    debrief.value = (data as any).debrief || null
+    debrief.value = data.debrief || null
   } catch {
     debrief.value = null
   }
