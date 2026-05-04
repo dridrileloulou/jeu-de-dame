@@ -220,7 +220,7 @@ function resetGame() {
   rev.value++
 }
 
-function handleCellClick(row, col) {
+async function handleCellClick(row, col) {
   if (isPaused.value || !game || winner.value || currentPlayer.value === 'black') return
   if (game.isValidMove(row, col)) {
     const movingPlayer = currentPlayer.value
@@ -231,6 +231,16 @@ function handleCellClick(row, col) {
         else blackCaptured.value++
       }
       if (!result.continuation) {
+        // Attendre l'analyse coach avant de laisser l'IA jouer (max 8s)
+        if (movingPlayer === 'white' && props.onPlayerMove) {
+          const boardMatrix = game.board.board.map(r =>
+            r.map(cell => (cell === 0 || cell == null) ? 0 : cell.color === 'white' ? 2 : 1)
+          )
+          await Promise.race([
+            props.onPlayerMove({ from: result.from, to: result.to, captured: !!result.captured, board: boardMatrix }),
+            new Promise(r => setTimeout(r, 8000))
+          ])
+        }
         currentPlayer.value = result.nextPlayer
         if (movingPlayer === 'black') {
           lastMoveFrom.value = result.from
@@ -238,13 +248,6 @@ function handleCellClick(row, col) {
         } else {
           lastMoveFrom.value = null
           lastMoveTo.value   = null
-          // Demander l'analyse du coup du joueur à Gemini (fire-and-forget)
-          if (props.onPlayerMove) {
-            const boardMatrix = game.board.board.map(r =>
-              r.map(cell => (cell === 0 || cell == null) ? 0 : cell.color === 'white' ? 2 : 1)
-            )
-            props.onPlayerMove({ from: result.from, to: result.to, captured: !!result.captured, board: boardMatrix })
-          }
         }
         rev.value++
         const w = game.checkWinner()

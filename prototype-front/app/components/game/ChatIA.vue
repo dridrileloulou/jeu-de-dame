@@ -137,7 +137,7 @@ async function triggerEvent(eventName) {
 
 // ─── Analyse du coup du joueur par le coach ───────────────────────────────────
 async function showCoachAnalysis(text) {
-  await showTypingThenMessage(text, 'ai')
+  await pushMessage(text, 'ai')
 }
 
 // ─── Coup de l'IA : affiche l'explication du coup ────────────────────────────

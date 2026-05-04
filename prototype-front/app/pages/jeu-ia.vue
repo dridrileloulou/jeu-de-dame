@@ -30,7 +30,7 @@ function onAiMove(info) {
 async function onPlayerMove(info) {
   try {
     const data = await $fetch('/api/coach-move', { method: 'POST', body: info })
-    if (data.analysis) chatRef.value?.showCoachAnalysis(data.analysis)
+    if (data.analysis) await chatRef.value?.showCoachAnalysis(data.analysis)
   } catch {}
 }
 
