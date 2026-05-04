@@ -69,6 +69,30 @@
             />
           </div>
         </div>
+
+        <!-- Flèche SVG du dernier coup IA -->
+        <svg
+          v-if="arrowCoords"
+          class="move-arrow"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <marker id="ia-arrowhead" markerWidth="4" markerHeight="4" refX="3.5" refY="2" orient="auto">
+              <path d="M0,0 L4,2 L0,4 Z" fill="rgba(210,160,50,0.65)" />
+            </marker>
+          </defs>
+          <line
+            :x1="arrowCoords.x1"
+            :y1="arrowCoords.y1"
+            :x2="arrowCoords.x2"
+            :y2="arrowCoords.y2"
+            stroke="rgba(210,160,50,0.5)"
+            stroke-width="1.1"
+            stroke-linecap="round"
+            marker-end="url(#ia-arrowhead)"
+          />
+        </svg>
       </div>
       <div class="right-panel" v-if="gameMode === 'local'">
         <PlayerTurn :current-player="currentPlayer" />
@@ -104,7 +128,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { Game } from '../../engine/Game.js'
 import PlayerTurn from './PlayerTurn.vue'
 
@@ -197,6 +221,25 @@ async function deleteSavedGame() {
   } catch {}
 }
 
+// Coordonnées SVG de la flèche, raccourcies pour ne pas chevaucher les pions
+const arrowCoords = computed(() => {
+  if (!lastMoveFrom.value || !lastMoveTo.value) return null
+  const fx = (lastMoveFrom.value.x + 0.5) * 10
+  const fy = (lastMoveFrom.value.y + 0.5) * 10
+  const tx = (lastMoveTo.value.x + 0.5) * 10
+  const ty = (lastMoveTo.value.y + 0.5) * 10
+  const dx = tx - fx, dy = ty - fy
+  const len = Math.sqrt(dx * dx + dy * dy)
+  if (len === 0) return null
+  const ux = dx / len, uy = dy / len
+  return {
+    x1: fx + ux * 4,   // départ : après le bord du pion source
+    y1: fy + uy * 4,
+    x2: tx - ux * 4.5, // arrivée : avant le bord du pion destination
+    y2: ty - uy * 4.5,
+  }
+})
+
 function getPieceAt(x, y)         { rev.value; return game?.getPiece(x, y) ?? null }
 function isSelected(row, col)     { rev.value; return game?.isSelected(row, col) ?? false }
 function isValidMove(row, col)    { rev.value; return game?.isValidMove(row, col) ?? false }
@@ -231,6 +274,11 @@ async function handleCellClick(row, col) {
         else blackCaptured.value++
       }
       if (!result.continuation) {
+        // Effacer la trace du coup IA dès que le joueur joue
+        if (movingPlayer === 'white') {
+          lastMoveFrom.value = null
+          lastMoveTo.value   = null
+        }
         // Attendre l'analyse coach avant de laisser l'IA jouer (max 8s)
         if (movingPlayer === 'white' && props.onPlayerMove) {
           const boardMatrix = game.board.board.map(r =>
@@ -428,8 +476,17 @@ function commitAiResult(result) {
   background-color: #b0b0b0;
 }
 
-.cell.last-from { background-color: #3a2c00 !important; }
+.cell.last-from { background-color: #4a3f30 !important; }
 .cell.last-to   { background-color: #5e4500 !important; }
+
+.move-arrow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
 
 /* Indicateur de mouvement possible (Style Initial) */
 .shadowed::before {
