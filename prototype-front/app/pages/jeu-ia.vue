@@ -34,7 +34,32 @@ async function onPlayerMove(info) {
   } catch {}
 }
 
+// Plateau de démonstration : fin de partie imminente (3 blancs vs 2 noirs)
+// Utilisé via ?demo=1 pour tester le debriefing Gemini rapidement
+function buildDemoBoard() {
+  const b = Array.from({ length: 10 }, () => Array(10).fill(null))
+  // Noirs (IA) : 2 pions en haut
+  b[1][3] = { color: 'black', isDraught: false }
+  b[1][7] = { color: 'black', isDraught: false }
+  // Blancs (joueur) : 3 pions en bas, dominant la partie
+  b[6][2] = { color: 'white', isDraught: false }
+  b[6][6] = { color: 'white', isDraught: false }
+  b[8][4] = { color: 'white', isDraught: false }
+  return b
+}
+
 onMounted(async () => {
+  if (route.query.demo === '1') {
+    resumeState.value = {
+      board: buildDemoBoard(),
+      currentPlayer: 'white',
+      whiteCaptured: 8,
+      blackCaptured: 2,
+    }
+    ready.value = true
+    return
+  }
+
   const id = route.query.resume?.toString()
   if (!id) { ready.value = true; return }
   try {

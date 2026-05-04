@@ -20,6 +20,22 @@
             <span class="gscore-val">{{ blackCaptured }}</span>
           </div>
         </div>
+
+        <!-- Debrief Gemini -->
+        <div class="debrief-section">
+          <div class="debrief-header">
+            <span class="debrief-icon">✦</span>
+            <span class="debrief-label">Analyse de la partie</span>
+          </div>
+          <div v-if="debriefLoading" class="debrief-loading">
+            <span class="debrief-dot"></span>
+            <span class="debrief-dot"></span>
+            <span class="debrief-dot"></span>
+          </div>
+          <p v-else-if="debrief" class="debrief-text">{{ debrief }}</p>
+          <p v-else class="debrief-text debrief-unavailable">Analyse indisponible.</p>
+        </div>
+
         <div class="gameover-btns">
           <NuxtLink to="/" class="gameover-btn">← Accueil</NuxtLink>
         </div>
@@ -152,6 +168,10 @@ const blackCaptured = ref(0)
 const lastMovePath = ref([])   // [{x,y}, ...] full AI move path (multi-capture)
 let aiMovePathBuffer = []      // accumulates segments during a multi-jump turn
 
+const debrief        = ref(null)
+const debriefLoading = ref(false)
+let moveHistory: { player: string, from: any, to: any, captured: boolean }[] = []
+
 const savedId   = ref(props.savedGameId)
 const saving    = ref(false)
 const justSaved = ref(false)
@@ -255,8 +275,11 @@ function resetGame() {
   blackCaptured.value = 0
   winner.value = null
   isPaused.value = false
+  debrief.value = null
+  debriefLoading.value = false
   lastMovePath.value = []
   aiMovePathBuffer = []
+  moveHistory = []
   rev.value++
 }
 
@@ -271,6 +294,7 @@ async function handleCellClick(row, col) {
         else blackCaptured.value++
       }
       if (!result.continuation) {
+        moveHistory.push({ player: 'white', from: result.from, to: result.to, captured: !!result.captured })
         // Effacer la trace du coup IA dès que le joueur joue
         lastMovePath.value = []
         aiMovePathBuffer = []
@@ -287,7 +311,7 @@ async function handleCellClick(row, col) {
         currentPlayer.value = result.nextPlayer
         rev.value++
         const w = game.checkWinner()
-        if (w) { winner.value = w; recordStat(w); deleteSavedGame() }
+        if (w) { winner.value = w; recordStat(w); deleteSavedGame(); fetchDebrief(w) }
       } else {
         rev.value++
       }
@@ -309,6 +333,25 @@ async function recordStat(winnerColor) {
       }
     })
   } catch {}
+}
+
+async function fetchDebrief(winnerColor: string) {
+  debriefLoading.value = true
+  try {
+    const data = await $fetch('/api/game-debrief', {
+      method: 'POST',
+      body: {
+        history: moveHistory,
+        winner: winnerColor,
+        whiteCaptured: whiteCaptured.value,
+        blackCaptured: blackCaptured.value,
+      }
+    })
+    debrief.value = (data as any).debrief || null
+  } catch {
+    debrief.value = null
+  }
+  debriefLoading.value = false
 }
 
 async function aiPlay(isContinuation = false) {
@@ -380,6 +423,7 @@ function commitAiResult(result) {
   if (aiMovePathBuffer.length === 0) aiMovePathBuffer.push(result.from)
   aiMovePathBuffer.push(result.to)
   lastMovePath.value = [...aiMovePathBuffer]
+  moveHistory.push({ player: 'black', from: result.from, to: result.to, captured: !!result.captured })
   if (result.continuation) {
     rev.value++
     setTimeout(() => aiPlay(true), 600)
@@ -387,7 +431,7 @@ function commitAiResult(result) {
     currentPlayer.value = result.nextPlayer
     rev.value++
     const w = game.checkWinner()
-    if (w) { winner.value = w; recordStat(w); deleteSavedGame() }
+    if (w) { winner.value = w; recordStat(w); deleteSavedGame(); fetchDebrief(w) }
   }
 }
 </script>
@@ -763,6 +807,72 @@ function commitAiResult(result) {
   display: inline-flex;
   align-items: center;
 }
+/* ── Debrief ────────────────────────────────────────────────── */
+.debrief-section {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 420px;
+}
+
+.debrief-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.debrief-icon {
+  font-size: 0.75rem;
+  color: rgba(210, 180, 90, 0.8);
+}
+
+.debrief-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(210, 180, 90, 0.8);
+}
+
+.debrief-text {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.debrief-unavailable {
+  color: rgba(255, 255, 255, 0.35);
+  font-style: italic;
+}
+
+.debrief-loading {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.debrief-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(210, 180, 90, 0.7);
+  animation: debrief-bounce 1.2s ease-in-out infinite;
+}
+.debrief-dot:nth-child(2) { animation-delay: .2s; }
+.debrief-dot:nth-child(3) { animation-delay: .4s; }
+
+@keyframes debrief-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: .4; }
+  40%           { transform: translateY(-5px); opacity: 1; }
+}
+
 .gameover-btn:hover { background: rgba(255, 255, 255, 0.25); }
 .gameover-btn--secondary {
   background: transparent;
