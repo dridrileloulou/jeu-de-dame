@@ -112,7 +112,8 @@ const props = defineProps({
   gameMode:     { type: String, default: 'local' },
   level:        { type: String, default: 'normale' },
   savedGameId:  { type: String, default: null },
-  initialState: { type: Object, default: null }
+  initialState: { type: Object, default: null },
+  onAiMove:     { type: Function, default: null }
 })
 
 const { loggedIn } = useUserSession()
@@ -282,12 +283,22 @@ async function aiPlay() {
       body: { board: boardMatrix, level: levelNum, player: 1 }
     })
 
-    if (data.aiMove && applyAiMove(data.aiMove)) return
+    if (data.aiMove && applyAiMove(data.aiMove)) {
+      if (props.onAiMove) {
+        props.onAiMove({
+          type:     data.usedMinimax ? 'minimax' : 'gemini',
+          analysis: data.analysis || null,
+          moveStr:  data.aiMove
+        })
+      }
+      return
+    }
     console.warn('[IA] Move rejected by engine:', data.aiMove, '— using local fallback')
   } catch (err) {
     console.error('Erreur IA Play:', err)
   }
 
+  if (props.onAiMove) props.onAiMove({ type: 'auto', analysis: null, moveStr: null })
   applyLocalFallback()
 }
 

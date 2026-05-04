@@ -104,8 +104,13 @@ import PlayerTurn from './PlayerTurn.vue'
 import PlayerTimer from './PlayerTimer.vue'
 
 const props = defineProps({
-  gameMode: { type: String, default: 'local' }
+  gameMode:    { type: String,   default: 'local' },
+  onChatEvent: { type: Function, default: null }
 })
+
+function emitChat(event) {
+  if (props.onChatEvent) props.onChatEvent(event)
+}
 
 let game = null
 const rev = ref(0)
@@ -121,6 +126,7 @@ let timerInterval = null
 onMounted(() => {
   game = new Game()
   startTimer()
+  emitChat('game_start')
 })
 
 onUnmounted(() => { if (timerInterval) clearInterval(timerInterval) })
@@ -168,12 +174,17 @@ function handleCellClick(row, col) {
       if (result.captured) {
         if (movingPlayer === 'white') whiteCaptured.value++
         else blackCaptured.value++
+        emitChat('player_captures')
       }
       if (!result.continuation) {
+        if (!result.captured) emitChat('good_move')
         currentPlayer.value = result.nextPlayer
         rev.value++
         const w = game.checkWinner()
-        if (w) winner.value = w
+        if (w) {
+          winner.value = w
+          emitChat(w === currentPlayer.value ? 'player_wins' : 'ai_wins')
+        }
       } else {
         rev.value++
       }

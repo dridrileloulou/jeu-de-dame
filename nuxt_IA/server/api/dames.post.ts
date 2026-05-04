@@ -36,8 +36,8 @@ const PROMPTS = {
     \nThe board is a ${board.length}x${board.length} matrix ${getColorInstruction(aiPlayer)}.
     \nHere is the current board:\n${JSON.stringify(board)}
     \nPlay a valid move. Format the move as "r1,c1 r2,c2".
-    \nIf you have a move that captures an opponent (a jump of 2 spaces), prioritize it. 
-    \nPlay VERY QUICKLY and do not overthink. Briefly explain your reasoning in 1 very short sentence, and provide exactly one move.
+    \nIf you have a move that captures an opponent (a jump of 2 spaces), prioritize it.
+    \nPlay VERY QUICKLY and do not overthink. Briefly explain your reasoning in 1 very short sentence IN FRENCH, and provide exactly one move.
     \nRespond ONLY with a valid JSON object in this exact format: {"analysis": "...", "move": "6,1 5,2"}`,
 
     expert: (board: Board, aiPlayer: Cell) => `
@@ -46,7 +46,7 @@ const PROMPTS = {
     \nHere is the current board:\n${JSON.stringify(board)}
     \nPlay a valid move. Format the move as "r1,c1 r2,c2".
     \nAnalyze your position. You must prioritize captures (a jump of 2 spaces). Consider keeping your back row intact and advancing your pieces to become Kings.
-    \nProvide a short strategic analysis (max 2 sentences), and provide exactly one move.
+    \nProvide a short strategic analysis (max 2 sentences) IN FRENCH, and provide exactly one move.
     \nRespond ONLY with a valid JSON object in this exact format: {"analysis": "...", "move": "6,1 5,2"}`,
 
     impossible: (board: Board, aiPlayer: Cell) => `
@@ -55,12 +55,12 @@ const PROMPTS = {
     \nHere is the current board:\n${JSON.stringify(board)}
     \nPlay a valid move. Format the move as "r1,c1 r2,c2".
     \nAnticipate multiple moves ahead. Protect your pieces from getting captured, set up traps, and dominate the center of the board. Always prioritize capturing if available.
-    \nExplain briefly (max 3 sentences), and provide precisely one move.
+    \nExplain briefly (max 3 sentences) IN FRENCH, and provide precisely one move.
     \nRespond ONLY with a valid JSON object in this exact format: {"analysis": "...", "move": "6,1 5,2"}`
 };
 
 // ---------- Call Gemini ----------
-async function askGemini(board: Board, level: number, aiPlayer: Cell): Promise<string | null> {
+async function askGemini(board: Board, level: number, aiPlayer: Cell): Promise<{ move: string | null, analysis: string | null }> {
     const config = useRuntimeConfig();
     const apiKey = config.geminiApiKey;
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -91,7 +91,7 @@ async function askGemini(board: Board, level: number, aiPlayer: Cell): Promise<s
             } catch (jsonErr) {
                 console.warn(`[Attempt ${attempt + 1}] JSON format error. Raw: \n${text}`);
                 if (attempt === 0) {
-                    await new Promise(r => setTimeout(r, 1000)); // Attendre 1s avant de réessayer
+                    await new Promise(r => setTimeout(r, 1000));
                 }
                 continue;
             }
@@ -102,7 +102,7 @@ async function askGemini(board: Board, level: number, aiPlayer: Cell): Promise<s
                 if (level > 1) {
                     console.log(`🤖 IA Dames (Lvl ${level}) reasoning :`, parsed.reasoning || parsed.analysis);
                 }
-                return move;
+                return { move, analysis: parsed.analysis || null };
             } else {
                 console.warn(`[Attempt ${attempt + 1}] Invalid move format chosen: ${move}.`);
                 if (attempt === 0) await new Promise(r => setTimeout(r, 1000));
@@ -110,15 +110,13 @@ async function askGemini(board: Board, level: number, aiPlayer: Cell): Promise<s
         } catch (e: any) {
             console.error(`Gemini error (attempt ${attempt + 1}):`, e.message);
             if (attempt === 0) {
-                // 1 seule seconde d'attente pour le Retry
                 console.log(`⏳ Erreur API : attente de 1s avant un dernier essai...`);
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
         }
     }
 
-    // fallback if AI completely failed formatting
-    return null;
+    return { move: null, analysis: null };
 }
 
 export default defineEventHandler(async (event) => {
@@ -127,22 +125,28 @@ export default defineEventHandler(async (event) => {
     const { board, level, player, useMinimaxOnly } = body as any;
     const aiPlayer = player ?? 2;
 
-    let move;
+    let move: string | null = null;
+    let analysis: string | null = null;
+    let usedMinimax = false;
+
     if (useMinimaxOnly) {
         console.log(`[Minimax Override] Calcul de la meilleure capture (profondeur ${level})...`);
         move = getMinimaxFallbackMove(board, aiPlayer, level);
+        usedMinimax = true;
     } else {
-        move = await askGemini(board, level, aiPlayer);
-        
-        // Fallback: If Gemini failed after 2 retries (Quota/503), use local Minimax
+        const geminiResult = await askGemini(board, level, aiPlayer);
+        move = geminiResult.move;
+        analysis = geminiResult.analysis;
+
         if (!move) {
             console.warn(`[Fallback] Gemini a échoué. Utilisation de l'algorithme Minimax local (profondeur ${level})...`);
             move = getMinimaxFallbackMove(board, aiPlayer, level);
+            usedMinimax = true;
         }
     }
 
     const duration = Date.now() - start;
     console.log(`[Dames AI] Move played in ${duration}ms (Level: ${level})`);
 
-    return { aiMove: move, durationMs: duration };
+    return { aiMove: move, analysis, usedMinimax, durationMs: duration };
 });

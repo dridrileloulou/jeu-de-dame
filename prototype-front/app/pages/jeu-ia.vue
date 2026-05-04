@@ -2,7 +2,8 @@
   <div class="game">
     <div class="game-content">
       <NavMenu />
-      <GameBoardIA v-if="ready" :level="level" :saved-game-id="resumeId" :initial-state="resumeState" />
+      <GameBoardIA v-if="ready" :level="level" :saved-game-id="resumeId" :initial-state="resumeState" :on-ai-move="onAiMove" />
+      <ChatIA ref="chatRef" />
     </div>
   </div>
 </template>
@@ -12,6 +13,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import NavMenu from '../components/NavMenu.vue'
 import GameBoardIA from '../components/game/GameBoardIA.vue'
+import ChatIA from '../components/game/ChatIA.vue'
 
 const route = useRoute()
 const level = computed(() => route.query.level || 'normale')
@@ -19,6 +21,11 @@ const level = computed(() => route.query.level || 'normale')
 const resumeId    = ref(null)
 const resumeState = ref(null)
 const ready       = ref(false)
+const chatRef     = ref(null)
+
+function onAiMove(info) {
+  chatRef.value?.showAiMove(info)
+}
 
 onMounted(async () => {
   const id = route.query.resume?.toString()
@@ -36,31 +43,60 @@ onMounted(async () => {
 </script>
 
 <style>
+/* Desktop : pas de scroll, tout tient dans l'écran */
 body {
   overflow: hidden;
+}
+
+/* Mobile : on autorise le scroll vertical */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
 }
 </style>
 
 <style scoped>
 .game {
   min-height: 100vh;
-  background:#abaaaa;
+  background: #abaaaa;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   color: white;
   font-family: Arial, sans-serif;
 }
 
 .game-content {
   display: flex;
-  align-items: flex-start;
-  gap: 30px;
-  margin: 2rem 0;
-  margin-left : 100px;
+  flex-direction: row;
+  align-items: center;       /* chat aligné verticalement avec le plateau */
+  justify-content: center;   /* ensemble centré horizontalement */
+  gap: 24px;
+  width: 100%;
+  box-sizing: border-box;
+  padding-left: 100px;       /* dégager le hamburger NavMenu */
+  padding-right: 24px;
 }
 
-.back {
-  color: white;
+/* Tablette */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .game-content {
+    padding-left: 70px;
+    padding-right: 12px;
+    gap: 16px;
+  }
+}
+
+/* Mobile : layout vertical, chat sous le plateau */
+@media (max-width: 768px) {
+  .game-content {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 4rem 12px 24px;
+    gap: 16px;
+  }
 }
 </style>
