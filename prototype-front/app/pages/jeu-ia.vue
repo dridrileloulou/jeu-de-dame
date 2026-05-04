@@ -2,7 +2,7 @@
   <div class="game">
     <div class="game-content">
       <NavMenu />
-      <GameBoardIA v-if="ready" :level="level" :saved-game-id="resumeId" :initial-state="resumeState" :on-ai-move="onAiMove" />
+      <GameBoardIA v-if="ready" :level="level" :saved-game-id="resumeId" :initial-state="resumeState" :on-ai-move="onAiMove" :on-player-move="onPlayerMove" />
       <ChatIA ref="chatRef" />
     </div>
   </div>
@@ -25,6 +25,13 @@ const chatRef     = ref(null)
 
 function onAiMove(info) {
   chatRef.value?.showAiMove(info)
+}
+
+async function onPlayerMove(info) {
+  try {
+    const data = await $fetch('/api/coach-move', { method: 'POST', body: info })
+    if (data.analysis) chatRef.value?.showCoachAnalysis(data.analysis)
+  } catch {}
 }
 
 onMounted(async () => {

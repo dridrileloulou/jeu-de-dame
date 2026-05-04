@@ -1,19 +1,22 @@
 <template>
-  <div class="chat-wrapper">
+  <div class="chat-wrapper" :class="{ collapsed }">
     <!-- Header -->
-    <div class="chat-header">
+    <div class="chat-header" @click="collapsed = !collapsed">
       <div class="ai-avatar">
         <span class="avatar-icon">♛</span>
-        <span class="avatar-status" :class="{ typing: isTyping }"></span>
+        <span class="avatar-status" :class="{ typing: isTyping && !collapsed }"></span>
       </div>
       <div class="ai-info">
         <span class="ai-name">IA Dames</span>
-        <span class="ai-status">{{ isTyping ? 'en train d\'écrire…' : 'en ligne' }}</span>
+        <span class="ai-status">{{ collapsed ? 'cliquer pour ouvrir' : isTyping ? 'en train d\'écrire…' : 'en ligne' }}</span>
       </div>
+      <button class="toggle-btn" @click.stop="collapsed = !collapsed" :title="collapsed ? 'Afficher' : 'Réduire'">
+        {{ collapsed ? '▲' : '▼' }}
+      </button>
     </div>
 
     <!-- Messages -->
-    <div class="chat-body" ref="chatBody">
+    <div class="chat-body" ref="chatBody" v-show="!collapsed">
       <TransitionGroup name="message" tag="div" class="messages-container">
         <div
           v-for="msg in messages"
@@ -43,7 +46,7 @@
     </div>
 
     <!-- Input optionnel joueur -->
-    <div class="chat-footer">
+    <div class="chat-footer" v-show="!collapsed">
       <input
         v-model="playerInput"
         class="player-input"
@@ -62,14 +65,15 @@
 import { ref, nextTick, onMounted } from 'vue'
 
 // ─── Expose pour l'appel externe ─────────────────────────────────────────────
-defineExpose({ triggerEvent, showAiMove })
+defineExpose({ triggerEvent, showAiMove, showCoachAnalysis })
 
 // ─── État ─────────────────────────────────────────────────────────────────────
-const messages   = ref([])
-const isTyping   = ref(false)
-const chatBody   = ref(null)
+const messages    = ref([])
+const isTyping    = ref(false)
+const chatBody    = ref(null)
 const playerInput = ref('')
-let   msgCounter = 0
+const collapsed   = ref(false)
+let   msgCounter  = 0
 
 // ─── Bibliothèque de phrases par événement ───────────────────────────────────
 const phrases = {
@@ -128,6 +132,11 @@ async function triggerEvent(eventName) {
   const pool = phrases[eventName]
   if (!pool) return
   const text = pool[Math.floor(Math.random() * pool.length)]
+  await showTypingThenMessage(text, 'ai')
+}
+
+// ─── Analyse du coup du joueur par le coach ───────────────────────────────────
+async function showCoachAnalysis(text) {
   await showTypingThenMessage(text, 'ai')
 }
 
@@ -243,6 +252,11 @@ onMounted(() => {
   }
 }
 
+/* ── Collapsed state ───────────────────────────────────────────────────── */
+.chat-wrapper.collapsed {
+  height: auto;
+}
+
 /* ── Header ────────────────────────────────────────────────────────────── */
 .chat-header {
   display:     flex;
@@ -251,7 +265,23 @@ onMounted(() => {
   padding:     14px 16px;
   background:  var(--bg-header);
   border-bottom: 1px solid rgba(255,255,255,.06);
+  cursor:      pointer;
+  user-select: none;
 }
+.chat-header:hover { background: #2e2e2e; }
+
+.toggle-btn {
+  margin-left: auto;
+  background:  transparent;
+  border:      none;
+  color:       var(--text-muted);
+  font-size:   12px;
+  cursor:      pointer;
+  padding:     2px 6px;
+  border-radius: 4px;
+  transition:  color .2s;
+}
+.toggle-btn:hover { color: var(--text-main); }
 
 .ai-avatar {
   position: relative;

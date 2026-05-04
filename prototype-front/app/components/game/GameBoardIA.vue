@@ -113,7 +113,8 @@ const props = defineProps({
   level:        { type: String, default: 'normale' },
   savedGameId:  { type: String, default: null },
   initialState: { type: Object, default: null },
-  onAiMove:     { type: Function, default: null }
+  onAiMove:     { type: Function, default: null },
+  onPlayerMove: { type: Function, default: null }
 })
 
 const { loggedIn } = useUserSession()
@@ -237,6 +238,13 @@ function handleCellClick(row, col) {
         } else {
           lastMoveFrom.value = null
           lastMoveTo.value   = null
+          // Demander l'analyse du coup du joueur à Gemini (fire-and-forget)
+          if (props.onPlayerMove) {
+            const boardMatrix = game.board.board.map(r =>
+              r.map(cell => (cell === 0 || cell == null) ? 0 : cell.color === 'white' ? 2 : 1)
+            )
+            props.onPlayerMove({ from: result.from, to: result.to, captured: !!result.captured, board: boardMatrix })
+          }
         }
         rev.value++
         const w = game.checkWinner()
