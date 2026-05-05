@@ -7,7 +7,7 @@
         <span class="avatar-status" :class="{ typing: isTyping && !collapsed }"></span>
       </div>
       <div class="ai-info">
-        <span class="ai-name">IA Dames</span>
+        <span class="ai-name">Gemini</span>
         <span class="ai-status">{{ collapsed ? 'cliquer pour ouvrir' : isTyping ? 'en train d\'écrire…' : 'en ligne' }}</span>
       </div>
       <button class="toggle-btn" @click.stop="collapsed = !collapsed" :title="collapsed ? 'Afficher' : 'Réduire'">
