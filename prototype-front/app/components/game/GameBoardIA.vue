@@ -187,7 +187,6 @@ onMounted(() => {
     game = new Game()
   }
   rev.value++
-  if (currentPlayer.value === 'black') aiPlay(false)
 })
 
 watch(currentPlayer, (newVal) => {
@@ -356,6 +355,7 @@ async function fetchDebrief(winnerColor) {
 
 async function aiPlay(isContinuation = false) {
   if (!game || winner.value || isPaused.value) return
+  if (!isContinuation && currentPlayer.value !== 'black') return
   if (!isContinuation) aiMovePathBuffer = []
 
   const boardMatrix = game.board.board.map(row =>
