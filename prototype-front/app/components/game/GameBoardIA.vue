@@ -20,6 +20,8 @@
             <span class="gscore-val">{{ blackCaptured }}</span>
           </div>
         </div>
+
+        <!-- Debrief Gemini -->
         <div class="debrief-section">
           <div class="debrief-header">
             <span class="debrief-icon">✦</span>
@@ -33,30 +35,24 @@
           <p v-else-if="debrief" class="debrief-text">{{ debrief }}</p>
           <p v-else class="debrief-text debrief-unavailable">Analyse indisponible.</p>
         </div>
+
         <div class="gameover-btns">
           <NuxtLink to="/" class="gameover-btn">← Accueil</NuxtLink>
         </div>
       </div>
     </div>
 
-    <!-- Bande IA (haut) -->
-    <div class="side-panel top-panel" :class="{ 'panel-active': currentPlayer === 'black' }">
-      <div class="player-info">
-        <div class="player-dot dot-black"></div>
-        <span class="player-name">IA ({{ level }})</span>
-        <div class="inline-caps">
-          <span v-for="i in blackCaptured" :key="i" class="inline-pip pip--white"></span>
-          <span v-if="blackCaptured > 0" class="inline-cap-count">×{{ blackCaptured }}</span>
-        </div>
+    <div class="board-section">
+      <div class="turn-banner" :class="currentPlayer">
+        <span class="turn-dot-sm" :class="currentPlayer === 'white' ? 'dot-white' : 'dot-black'"></span>
+        {{ currentPlayer === 'white' ? 'Votre tour (Blanc)' : "Tour de l'IA (Noir)" }}
       </div>
-    </div>
-
-    <!-- Plateau + panneau droit -->
     <div class="board-container">
       <div class="board" :class="{ paused: isPaused }">
         <div class="pause-overlay" v-if="isPaused">
           <div class="pause-content">
             <div class="pause-text">PAUSE</div>
+            <NuxtLink to="/" class="pause-home-btn">← Accueil</NuxtLink>
           </div>
         </div>
         <div v-for="(_, row) in 10" :key="row" class="row">
@@ -89,6 +85,7 @@
           </div>
         </div>
 
+        <!-- Flèches SVG du dernier coup IA -->
         <svg
           v-if="arrowSegments.length"
           class="move-arrow"
@@ -111,52 +108,52 @@
           />
         </svg>
       </div>
-
-      <!-- Panneau droit -->
-      <div class="right-panel">
-        <div class="turn-indicator" :class="[currentPlayer, { 'my-turn': currentPlayer === 'white' }]">
-          <div class="turn-dot" :class="currentPlayer === 'white' ? 'dot-white' : 'dot-black'"></div>
-          {{ currentPlayer === 'white' ? 'Votre tour' : "Tour de l'IA" }}
+      <div class="right-panel" v-if="gameMode === 'local'">
+        <PlayerTurn :current-player="currentPlayer" />
+        <div class="captures-panel">
+          <p class="cap-title">Prises</p>
+          <div class="cap-row">
+            <span class="cap-pip pip--white"></span>
+            <span class="cap-name">Blanc</span>
+            <div class="cap-dots">
+              <span v-for="i in whiteCaptured" :key="i" class="cap-dot dot--black"></span>
+            </div>
+            <span class="cap-count">{{ whiteCaptured }}</span>
+          </div>
+          <div class="cap-row">
+            <span class="cap-pip pip--black"></span>
+            <span class="cap-name">Noir</span>
+            <div class="cap-dots">
+              <span v-for="i in blackCaptured" :key="i" class="cap-dot dot--white"></span>
+            </div>
+            <span class="cap-count">{{ blackCaptured }}</span>
+          </div>
         </div>
-
-        <ChatIA ref="chatRef" />
-
         <button v-if="loggedIn" class="save-pause-btn" :class="{ saved: justSaved && !isPaused, paused: isPaused }" :disabled="saving" @click="isPaused ? togglePause() : savePause()">
           {{ isPaused ? '▶ Reprendre' : justSaved ? '✓ Sauvegardé' : saving ? '…' : '💾 Pause & Sauvegarder' }}
         </button>
         <button v-else class="pause-btn" @click="togglePause">
           {{ isPaused ? '▶ Reprendre' : '⏸ Pause' }}
         </button>
-
-        <NuxtLink to="/" class="btn-home">← Accueil</NuxtLink>
       </div>
     </div>
-
-    <!-- Bande joueur (bas) -->
-    <div class="side-panel bottom-panel" :class="{ 'panel-active': currentPlayer === 'white' }">
-      <div class="player-info">
-        <div class="player-dot dot-white"></div>
-        <span class="player-name">Vous (Blanc)</span>
-        <div class="inline-caps">
-          <span v-for="i in whiteCaptured" :key="i" class="inline-pip pip--black"></span>
-          <span v-if="whiteCaptured > 0" class="inline-cap-count">×{{ whiteCaptured }}</span>
-        </div>
-      </div>
-    </div>
-
+    </div><!-- board-section -->
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { Game } from '../../engine/Game.js'
-import ChatIA from './ChatIA.vue'
+import PlayerTurn from './PlayerTurn.vue'
 
 const props = defineProps({
+  gameMode:     { type: String, default: 'local' },
   level:        { type: String, default: 'normale' },
   savedGameId:  { type: String, default: null },
   initialState: { type: Object, default: null },
   isDemo:       { type: Boolean, default: false },
+  onAiMove:     { type: Function, default: null },
+  onPlayerMove: { type: Function, default: null }
 })
 
 const { loggedIn } = useUserSession()
@@ -170,8 +167,6 @@ const whiteCaptured = ref(0)
 const blackCaptured = ref(0)
 const lastMovePath = ref([])
 let aiMovePathBuffer = []
-
-const chatRef = ref(null)
 
 const debrief        = ref(null)
 const debriefLoading = ref(false)
@@ -308,17 +303,15 @@ async function handleCellClick(row, col) {
         moveHistory.push({ player: 'white', from: result.from, to: result.to, captured: !!result.captured })
         lastMovePath.value = []
         aiMovePathBuffer = []
-        // Coach analysis — bloque l'IA max 8s
-        try {
+        if (props.onPlayerMove) {
           const boardMatrix = game.board.board.map(r =>
             r.map(cell => (cell === 0 || cell == null) ? 0 : cell.color === 'white' ? 2 : 1)
           )
-          const coachData = await Promise.race([
-            $fetch('/api/coach-move', { method: 'POST', body: { from: result.from, to: result.to, captured: !!result.captured, board: boardMatrix } }),
+          await Promise.race([
+            props.onPlayerMove({ from: result.from, to: result.to, captured: !!result.captured, board: boardMatrix }),
             new Promise(r => setTimeout(r, 8000))
           ])
-          if (coachData?.analysis) await chatRef.value?.showCoachAnalysis(coachData.analysis)
-        } catch {}
+        }
         currentPlayer.value = result.nextPlayer
         rev.value++
         const w = game.checkWinner()
@@ -387,11 +380,13 @@ async function aiPlay(isContinuation = false) {
     })
 
     if (data.aiMove && applyAiMove(data.aiMove)) {
-      chatRef.value?.showAiMove({
-        type:     data.usedMinimax ? 'minimax' : 'gemini',
-        analysis: data.analysis || null,
-        moveStr:  data.aiMove
-      })
+      if (props.onAiMove) {
+        props.onAiMove({
+          type:     data.usedMinimax ? 'minimax' : 'gemini',
+          analysis: data.analysis || null,
+          moveStr:  data.aiMove
+        })
+      }
       return
     }
     console.warn('[IA] Move rejected by engine:', data.aiMove, '— using local fallback')
@@ -399,7 +394,7 @@ async function aiPlay(isContinuation = false) {
     console.error('Erreur IA Play:', err)
   }
 
-  chatRef.value?.showAiMove({ type: 'auto', analysis: null, moveStr: null })
+  if (props.onAiMove) props.onAiMove({ type: 'auto', analysis: null, moveStr: null })
   applyLocalFallback()
 }
 
@@ -448,99 +443,24 @@ function commitAiResult(result) {
 <style scoped>
 * { box-sizing: border-box; }
 
-/* ── Layout principal ─────────────────────────────────────────── */
 .game-wrapper {
-  height: 100dvh;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.55rem;
-  padding: 0.7rem;
-  overflow: hidden;
-  background: #abaaaa;
+  background-color: transparent;
+  padding: 10px;
 }
 
-/* ── Bandes joueur haut/bas ───────────────────────────────────── */
-.side-panel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  max-width: 1080px;
-  padding: 0.45rem 0.9rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
-  gap: 1rem;
-  transition: background 0.3s, box-shadow 0.3s;
-}
-
-.panel-active {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border-left: 3px solid rgba(255, 255, 255, 0.6);
-  animation: turn-glow 1.8s ease-in-out infinite;
-}
-
-@keyframes turn-glow {
-  0%, 100% { box-shadow: 0 0 6px rgba(255, 255, 255, 0.15); }
-  50%       { box-shadow: 0 0 16px rgba(255, 255, 255, 0.4); }
-}
-
-.player-info {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: white;
-  font-weight: 600;
-}
-
-.player-dot {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  flex-shrink: 0;
-}
-
-.dot-white { background: #ffffff; }
-.dot-black { background: #222222; }
-
-.player-name { font-size: 0.9rem; }
-
-.inline-caps {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  flex-wrap: wrap;
-  margin-left: 0.4rem;
-}
-
-.inline-pip {
-  display: inline-block;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.25);
-  box-shadow: inset 0 -1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.inline-cap-count {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.7);
-  margin-left: 2px;
-}
-
-/* ── Board container (plateau + panneau droit) ────────────────── */
+/* ── Conteneur principal ──────────────────────────────────────── */
 .board-container {
   display: flex;
   align-items: center;
-  gap: 1.2rem;
-  padding: 0.9rem;
-  background: #444444;
-  border-radius: 16px;
+  gap: 30px;
+  padding: 20px;
+  background-color: #444444;
+  border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
 }
 
 /* ── Plateau ──────────────────────────────────────────────────── */
@@ -563,10 +483,10 @@ function commitAiResult(result) {
 .row { display: flex; }
 
 .cell {
-  /* Width overhead: 2×0.7rem wrapper pad + 2×0.9rem container pad + 10px border + 1.2rem gap + right-panel(~290px) ≈ 410px */
-  /* Height overhead: 2×0.7rem pad + 2×0.55rem gap + 2×(0.45rem+ligne) strip (~90px) + 2×0.9rem container pad + 10px border ≈ 230px */
-  width: clamp(32px, min(calc((100vw - 410px) / 10), calc((100dvh - 230px) / 10)), 78px);
-  height: clamp(32px, min(calc((100vw - 410px) / 10), calc((100dvh - 230px) / 10)), 78px);
+  /* Desktop : NavMenu(100px) + ChatIA(~22vw) + gaps/padding(~200px) = ~510px overhead horizontal
+     Vertical : turn-banner(38px) + gaps(12px) + container-pad(40px) + border(10px) + wrapper-pad(20px) = ~120px */
+  width: clamp(36px, min(calc((100vw - 510px) / 10), calc((100dvh - 120px) / 10)), 80px);
+  height: clamp(36px, min(calc((100vw - 510px) / 10), calc((100dvh - 120px) / 10)), 80px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -657,6 +577,44 @@ function commitAiResult(result) {
   text-shadow: 0 0 6px rgba(0, 0, 0, 0.7);
 }
 
+/* ── Panneau droit ────────────────────────────────────────────── */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  min-width: 200px;
+}
+
+.save-pause-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 2px solid #2ed573;
+  background: rgba(46, 213, 115, 0.15);
+  color: #2ed573;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.save-pause-btn:hover:not(:disabled) { background: rgba(46, 213, 115, 0.3); }
+.save-pause-btn.saved  { border-color: #7bed9f; color: #7bed9f; }
+.save-pause-btn.paused { border-color: #ff2200; background: rgba(255, 34, 0, 0.2); color: #ff2200; }
+.save-pause-btn.paused:hover { background: rgba(255, 34, 0, 0.4); }
+.save-pause-btn:disabled { opacity: 0.5; cursor: default; }
+
+.pause-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 2px solid #ff2200;
+  background: rgba(255, 34, 0, 0.2);
+  color: #ff2200;
+  font-weight: bold;
+  cursor: pointer;
+}
+.pause-btn:hover { background: rgba(255, 34, 0, 0.4); }
+
 /* ── Pause overlay ────────────────────────────────────────────── */
 .pause-overlay {
   position: absolute;
@@ -682,104 +640,19 @@ function commitAiResult(result) {
   text-shadow: 0 0 20px #ff2200;
 }
 
-/* ── Panneau droit ────────────────────────────────────────────── */
-.right-panel {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.65rem;
-  width: 280px;
-  min-width: 240px;
-}
-
-.turn-indicator {
-  padding: 0.65rem 1rem;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 0.88rem;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.3s;
-}
-
-.turn-indicator.white { background: #fff; color: #262626; }
-.turn-indicator.black { background: #262626; color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); }
-
-.turn-indicator.my-turn {
-  animation: my-turn-pulse 1.8s ease-in-out infinite;
-}
-
-@keyframes my-turn-pulse {
-  0%, 100% { box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.2); }
-  50%       { box-shadow: 0 0 18px 6px rgba(255, 255, 255, 0.5); }
-}
-
-.turn-dot {
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.3);
-}
-
-/* ChatIA adapté au panneau droit */
-.right-panel :deep(.chat-wrapper) {
-  width: 100% !important;
-  min-width: 0 !important;
-  height: 280px !important;
-  min-height: 0 !important;
-  border-radius: 12px;
-  flex: 1;
-}
-
-.save-pause-btn {
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
-  border: 2px solid #2ed573;
-  background: rgba(46, 213, 115, 0.15);
-  color: #2ed573;
-  font-weight: bold;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 0.85rem;
-  transition: background 0.2s, border-color 0.2s, color 0.2s;
-}
-.save-pause-btn:hover:not(:disabled) { background: rgba(46, 213, 115, 0.3); }
-.save-pause-btn.saved  { border-color: #7bed9f; color: #7bed9f; }
-.save-pause-btn.paused { border-color: #ff2200; background: rgba(255, 34, 0, 0.2); color: #ff2200; }
-.save-pause-btn.paused:hover { background: rgba(255, 34, 0, 0.4); }
-.save-pause-btn:disabled { opacity: 0.5; cursor: default; }
-
-.pause-btn {
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
-  border: 2px solid #ff2200;
-  background: rgba(255, 34, 0, 0.2);
-  color: #ff2200;
-  font-weight: bold;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 0.85rem;
-  transition: background 0.2s;
-}
-.pause-btn:hover { background: rgba(255, 34, 0, 0.4); }
-
-.btn-home {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+.pause-home-btn {
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
   border-radius: 8px;
   text-decoration: none;
-  font-size: 0.85rem;
   font-weight: 600;
+  font-size: 0.9rem;
   transition: background 0.2s;
+  z-index: 11;
 }
-.btn-home:hover { background: rgba(255, 255, 255, 0.2); }
+.pause-home-btn:hover { background: rgba(255, 255, 255, 0.22); }
 
 /* ── Game Over ────────────────────────────────────────────────── */
 .gameover-overlay {
@@ -807,9 +680,10 @@ function commitAiResult(result) {
   max-width: 90vw;
 }
 
-.gameover-icon  { font-size: 3.5rem; line-height: 1; }
-.gameover-title { margin: 0; font-size: 1.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.gameover-icon   { font-size: 3.5rem; line-height: 1; }
+.gameover-title  { margin: 0; font-size: 1.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 .gameover-reason { margin: -0.5rem 0 0; font-size: 0.9rem; color: rgba(255, 255, 255, 0.5); }
+.gameover-btns   { display: flex; gap: 0.7rem; margin-top: 0.2rem; }
 
 .gameover-scores {
   display: flex;
@@ -820,18 +694,16 @@ function commitAiResult(result) {
   border-radius: 12px;
 }
 
-.gscore         { display: flex; align-items: center; gap: 0.5rem; }
-.gscore-pip     { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.3); box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3); }
-.gscore-label   { font-size: 0.9rem; color: rgba(255,255,255,0.6); }
-.gscore-val     { font-size: 1.3rem; font-weight: 700; }
-.gscore-sep     { color: rgba(255,255,255,0.3); font-size: 1.2rem; }
-
-.gameover-btns { display: flex; gap: 0.7rem; margin-top: 0.2rem; }
+.gscore       { display: flex; align-items: center; gap: 0.5rem; }
+.gscore-pip   { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.3); box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3); }
+.gscore-label { font-size: 0.9rem; color: rgba(255, 255, 255, 0.6); }
+.gscore-val   { font-size: 1.3rem; font-weight: 700; }
+.gscore-sep   { color: rgba(255, 255, 255, 0.3); font-size: 1.2rem; }
 
 .gameover-btn {
   padding: 0.75rem 2rem;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.35);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.35);
   color: white;
   font-size: 1rem;
   font-weight: 600;
@@ -842,13 +714,13 @@ function commitAiResult(result) {
   display: inline-flex;
   align-items: center;
 }
-.gameover-btn:hover { background: rgba(255,255,255,0.25); }
+.gameover-btn:hover { background: rgba(255, 255, 255, 0.25); }
 
 /* ── Debrief ──────────────────────────────────────────────────── */
 .debrief-section {
   width: 100%;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 1rem 1.2rem;
   display: flex;
@@ -858,75 +730,121 @@ function commitAiResult(result) {
 }
 
 .debrief-header { display: flex; align-items: center; gap: 0.5rem; }
-.debrief-icon   { font-size: 0.75rem; color: rgba(210,180,90,0.8); }
-.debrief-label  { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(210,180,90,0.8); }
-.debrief-text   { margin: 0; font-size: 0.88rem; line-height: 1.6; color: rgba(255,255,255,0.82); }
-.debrief-unavailable { color: rgba(255,255,255,0.35); font-style: italic; }
+.debrief-icon   { font-size: 0.75rem; color: rgba(210, 180, 90, 0.8); }
+.debrief-label  { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(210, 180, 90, 0.8); }
+.debrief-text   { margin: 0; font-size: 0.88rem; line-height: 1.6; color: rgba(255, 255, 255, 0.82); }
+.debrief-unavailable { color: rgba(255, 255, 255, 0.35); font-style: italic; }
 
 .debrief-loading { display: flex; gap: 5px; align-items: center; padding: 4px 0; }
 .debrief-dot {
   width: 7px; height: 7px;
   border-radius: 50%;
-  background: rgba(210,180,90,0.7);
+  background: rgba(210, 180, 90, 0.7);
   animation: debrief-bounce 1.2s ease-in-out infinite;
 }
 .debrief-dot:nth-child(2) { animation-delay: .2s; }
 .debrief-dot:nth-child(3) { animation-delay: .4s; }
 @keyframes debrief-bounce {
   0%, 80%, 100% { transform: translateY(0); opacity: .4; }
-  40%           { transform: translateY(-5px); opacity: 1; }
+  40%            { transform: translateY(-5px); opacity: 1; }
 }
 
-/* ── Couleurs pions partagées ─────────────────────────────────── */
-.pip--white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); }
-.pip--black { background: radial-gradient(circle at 35% 35%, #555, #111); }
+/* ── Board section + turn banner ──────────────────────────────── */
+.board-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
 
-/* ── Mobile (≤700px) ──────────────────────────────────────────── */
-@media (max-width: 700px) {
+.turn-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s;
+  color: white;
+}
+.turn-banner.white {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  animation: my-turn-glow 1.8s ease-in-out infinite;
+}
+.turn-banner.black {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+}
+@keyframes my-turn-glow {
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.15); }
+  50%       { box-shadow: 0 0 16px 4px rgba(255, 255, 255, 0.4); }
+}
+
+.turn-dot-sm {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+}
+.dot-white { background: #fff; }
+.dot-black { background: #222; }
+
+/* ── Captures panel ───────────────────────────────────────────── */
+.captures-panel {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cap-title { margin: 0 0 0.4rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255, 255, 255, 0.4); }
+.cap-row   { display: flex; align-items: center; gap: 0.5rem; }
+.cap-pip   { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.25); box-shadow: inset 0 -2px 3px rgba(0,0,0,0.3); flex-shrink: 0; }
+.cap-name  { font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); min-width: 2.8rem; }
+.cap-dots  { display: flex; flex-wrap: wrap; gap: 3px; flex: 1; }
+.cap-dot   { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.2); box-shadow: inset 0 -1px 2px rgba(0,0,0,0.3); }
+.cap-count { font-size: 1rem; font-weight: 700; color: white; min-width: 1.2rem; text-align: right; }
+
+.pip--white, .dot--white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); }
+.pip--black, .dot--black { background: radial-gradient(circle at 35% 35%, #555, #111); }
+
+/* ── Tablette (769–1024px) ────────────────────────────────────── */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .cell {
+    /* Overhead réduit : NavMenu(70px) + ChatIA(~22vw) + gaps(~150px) = ~460px */
+    width: clamp(32px, min(calc((100vw - 460px) / 10), calc((100dvh - 120px) / 10)), 72px);
+    height: clamp(32px, min(calc((100vw - 460px) / 10), calc((100dvh - 120px) / 10)), 72px);
+  }
+}
+
+/* ── Mobile (≤768px) : ChatIA passe en dessous ────────────────── */
+@media (max-width: 768px) {
   .game-wrapper {
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
-    justify-content: flex-start;
-    padding: 0.4rem;
-    gap: 0.35rem;
+    padding: 0;
   }
-
-  .side-panel {
-    padding: 0.35rem 0.6rem;
-    max-width: 100%;
-  }
-
-  .player-name { font-size: 0.78rem; }
 
   .board-container {
-    flex-direction: column;
-    padding: 6px;
-    gap: 6px;
+    padding: 12px;
+    gap: 0;
   }
+
+  .right-panel { display: none; }
 
   .cell {
-    width: min(calc((100vw - 36px) / 10), calc((100dvh - 250px) / 10));
-    height: min(calc((100vw - 36px) / 10), calc((100dvh - 250px) / 10));
+    /* Pas de ChatIA à côté : overhead = padding wrapper(20px) + container(24px) + border(10px) = ~54px */
+    width: clamp(28px, calc((100vw - 56px) / 10), 58px);
+    height: clamp(28px, calc((100vw - 56px) / 10), 58px);
   }
 
-  .right-panel {
-    flex-direction: row;
-    flex-wrap: wrap;
-    width: 100%;
-    min-width: unset;
-    gap: 0.5rem;
+  .turn-banner {
+    font-size: 0.78rem;
+    padding: 0.35rem 0.8rem;
   }
-
-  .right-panel :deep(.chat-wrapper) {
-    width: 100% !important;
-    height: 180px !important;
-    order: 10;
-  }
-
-  .turn-indicator  { flex: 1; font-size: 0.78rem; padding: 0.5rem; }
-  .save-pause-btn,
-  .pause-btn       { flex: 1; font-size: 0.78rem; white-space: nowrap; }
-  .btn-home        { flex: 0; font-size: 0.78rem; }
 }
 </style>
