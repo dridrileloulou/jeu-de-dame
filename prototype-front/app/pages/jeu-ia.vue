@@ -91,7 +91,8 @@ body {
 
 <style scoped>
 .game {
-  min-height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   background: #abaaaa;
   display: flex;
   flex-direction: column;
@@ -101,6 +102,8 @@ body {
 }
 
 .game-content {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: row;
   align-items: center;       /* chat aligné verticalement avec le plateau */
@@ -123,6 +126,12 @@ body {
 
 /* Mobile : layout vertical, chat sous le plateau */
 @media (max-width: 768px) {
+  .game {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
   .game-content {
     flex-direction: column;
     align-items: center;

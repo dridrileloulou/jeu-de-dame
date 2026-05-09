@@ -470,11 +470,8 @@ function commitAiResult(result) {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  min-height: 100vh;
   background-color: transparent;
   padding: 10px;
-  overflow: hidden;
 }
 
 /* --- Conteneur Principal (#444 de ton accueil) --- */
@@ -515,10 +512,9 @@ function commitAiResult(result) {
 }
 
 .cell {
-  /* On définit la taille en fonction de la hauteur de l'écran (vh) 
-     8vh * 10 cases = 80% de la hauteur de l'écran. Ça rentrera toujours. */
-  width: clamp(40px, 8vh, 80px);
-  height: clamp(40px, 8vh, 80px);
+  /* Desktop : 510px overhead = 100px nav + 24px right-pad + 24px gap + 300px chat-min + 40px container-pad + 10px border + 12px margin */
+  width: clamp(36px, min(calc((100vw - 510px) / 10), calc((100dvh - 120px) / 10)), 80px);
+  height: clamp(36px, min(calc((100vw - 510px) / 10), calc((100dvh - 120px) / 10)), 80px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -950,7 +946,32 @@ function commitAiResult(result) {
 .dot-white { background: #fff; }
 .dot-black { background: #222; }
 
-@media (max-width: 700px) {
+/* ── Tablette (769-1024px) : nav 70px, gap 16px, chat min 300px ── */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .cell {
+    width: clamp(32px, min(calc((100vw - 460px) / 10), calc((100dvh - 120px) / 10)), 72px);
+    height: clamp(32px, min(calc((100vw - 460px) / 10), calc((100dvh - 120px) / 10)), 72px);
+  }
+}
+
+/* ── Mobile (≤768px) : layout colonne, chat sous le board ── */
+@media (max-width: 768px) {
+  .game-wrapper {
+    padding: 0;
+    align-items: flex-start;
+  }
+
+  .board-container {
+    padding: 12px;
+    gap: 0;
+  }
+
+  .cell {
+    /* Largeur disponible = 100vw - 12px padding page × 2 - 12px container pad × 2 - 10px border = 100vw - 58px */
+    width: clamp(28px, calc((100vw - 58px) / 10), 60px);
+    height: clamp(28px, calc((100vw - 58px) / 10), 60px);
+  }
+
   .right-panel { display: none; }
 }
 
