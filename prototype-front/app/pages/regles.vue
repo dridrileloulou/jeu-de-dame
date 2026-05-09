@@ -1,18 +1,16 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import GameBar from '../components/GameBar.vue'
 
+const pageEl = ref(null)
 const visible = ref(false)
 
-function onScroll() { visible.value = window.scrollY > 200 }
-function scrollTop() { window.scrollTo({ top: 0, behavior: 'smooth' }) }
-
-onMounted(() => window.addEventListener('scroll', onScroll))
-onUnmounted(() => window.removeEventListener('scroll', onScroll))
+function onScroll() { visible.value = pageEl.value?.scrollTop > 200 }
+function scrollTop() { pageEl.value?.scrollTo({ top: 0, behavior: 'smooth' }) }
 </script>
 
 <template>
-  <div class="page">
+  <div ref="pageEl" class="page" @scroll="onScroll">
     <GameBar title="Règles du jeu" />
 
     <div class="content">
@@ -204,13 +202,10 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   </div>
 </template>
 
-<style>
-body { overflow-y: auto; }
-</style>
-
 <style scoped>
 .page {
-  min-height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
   background: #abaaaa;
   display: flex;
   flex-direction: column;
