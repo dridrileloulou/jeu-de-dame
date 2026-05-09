@@ -152,6 +152,7 @@ const props = defineProps({
   level:        { type: String, default: 'normale' },
   savedGameId:  { type: String, default: null },
   initialState: { type: Object, default: null },
+  isDemo:       { type: Boolean, default: false },
   onAiMove:     { type: Function, default: null },
   onPlayerMove: { type: Function, default: null }
 })
@@ -172,9 +173,10 @@ const debrief        = ref(null)
 const debriefLoading = ref(false)
 let moveHistory = []
 
-const savedId   = ref(props.savedGameId)
-const saving    = ref(false)
-const justSaved = ref(false)
+const savedId       = ref(props.savedGameId)
+const saving        = ref(false)
+const justSaved     = ref(false)
+const demoSnapshot  = ref(null)
 
 onMounted(() => {
   if (props.initialState) {
@@ -183,6 +185,7 @@ onMounted(() => {
     currentPlayer.value = s.currentPlayer
     whiteCaptured.value = s.whiteCaptured
     blackCaptured.value = s.blackCaptured
+    demoSnapshot.value  = s.demoSnapshot || null
   } else {
     game = new Game()
   }
@@ -233,8 +236,29 @@ async function saveGame() {
 async function deleteSavedGame() {
   if (!savedId.value) return
   try {
-    await $fetch(`/api/local-games/${savedId.value}`, { method: 'DELETE' })
-    savedId.value = null
+    if (props.isDemo && demoSnapshot.value) {
+      const snap = demoSnapshot.value
+      await $fetch('/api/local-games', {
+        method: 'POST',
+        body: {
+          id: savedId.value,
+          whiteName: 'Joueur',
+          blackName: `IA (${props.level})`,
+          currentPlayer: snap.currentPlayer,
+          whiteCaptured: snap.whiteCaptured,
+          blackCaptured: snap.blackCaptured,
+          timerSeconds: 0,
+          whiteTime: snap.whiteTime || 0,
+          blackTime: snap.blackTime || 0,
+          board: snap.board,
+          mode: 'ia',
+          level: props.level
+        }
+      })
+    } else {
+      await $fetch(`/api/local-games/${savedId.value}`, { method: 'DELETE' })
+      savedId.value = null
+    }
   } catch {}
 }
 

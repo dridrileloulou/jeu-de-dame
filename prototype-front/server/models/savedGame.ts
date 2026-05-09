@@ -12,7 +12,9 @@ const savedGameSchema = new mongoose.Schema({
   blackTime:     { type: Number, default: 0 },
   board:         { type: mongoose.Schema.Types.Mixed },
   mode:          { type: String, default: 'offline' },
-  level:         { type: String, default: '' }
+  level:         { type: String, default: '' },
+  isDemo:        { type: Boolean, default: false },
+  demoSnapshot:  { type: mongoose.Schema.Types.Mixed, default: null }
 }, { timestamps: true })
 
 export const SavedGame = mongoose.models.SavedGame || mongoose.model('SavedGame', savedGameSchema)

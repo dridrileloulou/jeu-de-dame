@@ -2,7 +2,7 @@
   <div class="game">
     <div class="game-content">
       <NavMenu />
-      <GameBoardIA v-if="ready" :level="level" :saved-game-id="resumeId" :initial-state="resumeState" :on-ai-move="onAiMove" :on-player-move="onPlayerMove" />
+      <GameBoardIA v-if="ready" :level="level" :saved-game-id="resumeId" :initial-state="resumeState" :is-demo="!!resumeState?.isDemo" :on-ai-move="onAiMove" :on-player-move="onPlayerMove" />
       <ChatIA ref="chatRef" />
     </div>
   </div>

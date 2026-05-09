@@ -11,7 +11,8 @@ const tab        = ref('ongoing')
 const ongoing    = ref([])
 const history    = ref([])
 const loading    = ref(false)
-const deletingId = ref(null)
+const deletingId  = ref(null)
+const togglingId  = ref(null)
 
 watch(() => props.show, async (v) => {
   if (v) {
@@ -38,6 +39,59 @@ async function deleteGame(id) {
     ongoing.value = ongoing.value.filter(g => g._id !== id)
   } catch {}
   deletingId.value = null
+}
+
+async function toggleDemo(id, currentIsDemo) {
+  togglingId.value = id
+  try {
+    await $fetch(`/api/local-games/${id}`, { method: 'PATCH', body: { isDemo: !currentIsDemo } })
+    const g = ongoing.value.find(g => g._id === id)
+    if (g) g.isDemo = !currentIsDemo
+  } catch {}
+  togglingId.value = null
+}
+
+const creatingQuickDemo = ref(false)
+
+function buildQuickDemoBoard() {
+  const b = Array.from({ length: 10 }, () => Array(10).fill(null))
+  // Noir (IA) : 3 pions
+  b[2][2] = { color: 'black', isDraught: false }
+  b[2][6] = { color: 'black', isDraught: false }
+  b[4][4] = { color: 'black', isDraught: false }
+  // Blanc (joueur) : 3 pions — prise double immédiate disponible dès le 1er coup
+  // (5,3) peut prendre (4,4) → atterrit (3,5) → peut enchaîner (2,6) → (1,7)
+  b[5][3] = { color: 'white', isDraught: false }
+  b[5][7] = { color: 'white', isDraught: false }
+  b[7][5] = { color: 'white', isDraught: false }
+  return b
+}
+
+async function createQuickDemo() {
+  creatingQuickDemo.value = true
+  try {
+    const board = buildQuickDemoBoard()
+    const res = await $fetch('/api/local-games', {
+      method: 'POST',
+      body: {
+        whiteName: 'Joueur',
+        blackName: 'IA (normale)',
+        currentPlayer: 'white',
+        whiteCaptured: 6,
+        blackCaptured: 1,
+        timerSeconds: 0,
+        whiteTime: 0,
+        blackTime: 0,
+        board,
+        mode: 'ia',
+        level: 'normale',
+        isDemo: true
+      }
+    })
+    const games = await $fetch('/api/local-games')
+    ongoing.value = games
+  } catch {}
+  creatingQuickDemo.value = false
 }
 
 const MODE_LABEL  = { ia: 'vs IA', online: 'En ligne', local: 'Local' }
@@ -84,13 +138,19 @@ function formatDatetime(d) {
 
       <!-- Onglet EN COURS -->
       <template v-else-if="tab === 'ongoing'">
+        <button class="btn-create-demo" :disabled="creatingQuickDemo" @click="createQuickDemo">
+          {{ creatingQuickDemo ? '…' : '🎯 Créer position de démo rapide' }}
+        </button>
         <div v-if="ongoing.length === 0" class="empty-state">Aucune partie en cours sauvegardée.</div>
         <ul v-else class="game-list">
           <li v-for="g in ongoing" :key="g._id" class="game-item">
             <div class="ongoing-info">
               <span class="ongoing-icon">{{ g.mode === 'ia' ? '🤖' : '👥' }}</span>
               <div class="ongoing-names">
-                <span class="ongoing-title">{{ g.whiteName }} vs {{ g.blackName }}</span>
+                <div class="ongoing-title-row">
+                  <span class="ongoing-title">{{ g.whiteName }} vs {{ g.blackName }}</span>
+                  <span v-if="g.isDemo" class="demo-badge">DÉMO</span>
+                </div>
                 <span class="ongoing-meta">
                   Tour : <strong>{{ g.currentPlayer === 'white' ? g.whiteName : g.blackName }}</strong>
                   · {{ formatDatetime(g.updatedAt) }}
@@ -98,12 +158,20 @@ function formatDatetime(d) {
               </div>
             </div>
             <div class="ongoing-actions">
+              <button
+                class="btn-demo"
+                :class="{ active: g.isDemo }"
+                :disabled="togglingId === g._id"
+                :title="g.isDemo ? 'Retirer le mode démo' : 'Marquer comme démo'"
+                @click="toggleDemo(g._id, g.isDemo)"
+              >🎯</button>
               <NuxtLink
                 :to="g.mode === 'ia' ? `/jeu-ia?resume=${g._id}&level=${g.level}` : `/jeu-offline?resume=${g._id}`"
                 class="btn-resume"
                 @click="emit('close')"
               >▶ Reprendre</NuxtLink>
               <button
+                v-if="!g.isDemo"
                 class="btn-delete"
                 :disabled="deletingId === g._id"
                 @click="deleteGame(g._id)"
@@ -283,6 +351,13 @@ function formatDatetime(d) {
   min-width: 0;
 }
 
+.ongoing-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
 .ongoing-title {
   font-size: var(--fs-base);
   font-weight: 600;
@@ -290,6 +365,33 @@ function formatDatetime(d) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.demo-badge {
+  flex-shrink: 0;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 200, 0, 0.18);
+  color: #ffd700;
+  border: 1px solid rgba(255, 200, 0, 0.4);
+}
+
+.btn-demo {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.3);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+  line-height: 1;
+}
+.btn-demo:hover:not(:disabled) { color: #ffd700; border-color: rgba(255,200,0,0.4); }
+.btn-demo.active { color: #ffd700; border-color: rgba(255,200,0,0.5); background: rgba(255,200,0,0.12); }
+.btn-demo:disabled { opacity: 0.3; }
 
 .ongoing-meta {
   font-size: calc(var(--fs-base) * 0.78);
@@ -330,6 +432,22 @@ function formatDatetime(d) {
 }
 .btn-delete:hover:not(:disabled) { color: #ff6b6b; }
 .btn-delete:disabled { opacity: 0.3; }
+
+.btn-create-demo {
+  width: 100%;
+  padding: calc(var(--cell) * 0.09) calc(var(--cell) * 0.14);
+  border-radius: calc(var(--radius) * 0.6);
+  border: 1px dashed rgba(255, 200, 0, 0.35);
+  background: rgba(255, 200, 0, 0.07);
+  color: rgba(255, 200, 0, 0.75);
+  font-size: calc(var(--fs-base) * 0.85);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  font-family: inherit;
+}
+.btn-create-demo:hover:not(:disabled) { background: rgba(255, 200, 0, 0.15); color: #ffd700; }
+.btn-create-demo:disabled { opacity: 0.4; cursor: default; }
 
 /* ── HISTORIQUE ── */
 .result-badge {
