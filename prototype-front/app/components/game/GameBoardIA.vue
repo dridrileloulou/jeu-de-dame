@@ -47,6 +47,18 @@
         <span class="turn-dot-sm" :class="currentPlayer === 'white' ? 'dot-white' : 'dot-black'"></span>
         {{ currentPlayer === 'white' ? 'Votre tour (Blanc)' : "Tour de l'IA (Noir)" }}
       </div>
+      <!-- Captures (mobile uniquement, right-panel masqué) -->
+      <div class="cap-bar">
+        <span class="cap-bar-item">
+          <span class="cap-bar-dot pip--white"></span>
+          Blanc&nbsp;<strong>{{ whiteCaptured }}</strong>
+        </span>
+        <span class="cap-bar-sep">·</span>
+        <span class="cap-bar-item">
+          <span class="cap-bar-dot pip--black"></span>
+          Noir&nbsp;<strong>{{ blackCaptured }}</strong>
+        </span>
+      </div>
     <div class="board-container">
       <div class="board" :class="{ paused: isPaused }">
         <div class="pause-overlay" v-if="isPaused">
@@ -823,28 +835,54 @@ function commitAiResult(result) {
   }
 }
 
-/* ── Mobile (≤768px) : ChatIA passe en dessous ────────────────── */
+/* ── Mobile (≤768px) ──────────────────────────────────────────── */
 @media (max-width: 768px) {
   .game-wrapper {
     padding: 0;
   }
 
   .board-container {
-    padding: 12px;
+    padding: 10px;
     gap: 0;
   }
 
   .right-panel { display: none; }
 
   .cell {
-    /* Pas de ChatIA à côté : overhead = padding wrapper(20px) + container(24px) + border(10px) = ~54px */
-    width: clamp(28px, calc((100vw - 56px) / 10), 58px);
-    height: clamp(28px, calc((100vw - 56px) / 10), 58px);
+    /* Overhead : game-content pad(16px) + container pad(20px) + border(10px) = 46px */
+    width: clamp(28px, calc((100vw - 48px) / 10), 56px);
+    height: clamp(28px, calc((100vw - 48px) / 10), 56px);
   }
 
   .turn-banner {
     font-size: 0.78rem;
     padding: 0.35rem 0.8rem;
   }
+
+  /* Mini barre captures (cachée sur desktop) */
+  .cap-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.65);
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.28rem 0.8rem;
+    border-radius: 8px;
+  }
+
+  .cap-bar-item { display: flex; align-items: center; gap: 0.3rem; }
+  .cap-bar-sep  { color: rgba(255, 255, 255, 0.25); }
+
+  .cap-bar-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.25);
+    flex-shrink: 0;
+  }
 }
+
+/* Cap-bar masquée hors mobile */
+.cap-bar { display: none; }
 </style>
