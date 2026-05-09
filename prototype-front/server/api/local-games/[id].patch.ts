@@ -4,6 +4,7 @@ import { SavedGame } from '../../models/savedGame'
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
   if (!session?.user) throw createError({ statusCode: 401, message: 'Non authentifié' })
+  if (!session.user.isAdmin) throw createError({ statusCode: 403, message: 'Réservé aux administrateurs' })
 
   const id = getRouterParam(event, 'id')
   const { isDemo } = await readBody(event)

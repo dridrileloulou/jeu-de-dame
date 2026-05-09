@@ -20,6 +20,9 @@ export default defineEventHandler(async (event) => {
     return { id: game._id }
   }
 
+  if (isDemo && !session.user.isAdmin)
+    throw createError({ statusCode: 403, message: 'Réservé aux administrateurs' })
+
   const demoSnapshot = isDemo ? { board, currentPlayer, whiteCaptured, blackCaptured, whiteTime, blackTime } : null
   const game = await SavedGame.create({ userId: session.user.id, whiteName, blackName, currentPlayer, whiteCaptured, blackCaptured, timerSeconds, whiteTime, blackTime, board, mode: mode || 'offline', level: level || '', isDemo: !!isDemo, demoSnapshot })
   return { id: game._id }

@@ -7,6 +7,8 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
+const { user } = useUserSession()
+
 const tab        = ref('ongoing')
 const ongoing    = ref([])
 const history    = ref([])
@@ -138,7 +140,7 @@ function formatDatetime(d) {
 
       <!-- Onglet EN COURS -->
       <template v-else-if="tab === 'ongoing'">
-        <button class="btn-create-demo" :disabled="creatingQuickDemo" @click="createQuickDemo">
+        <button v-if="user?.isAdmin" class="btn-create-demo" :disabled="creatingQuickDemo" @click="createQuickDemo">
           {{ creatingQuickDemo ? '…' : '🎯 Créer position de démo rapide' }}
         </button>
         <div v-if="ongoing.length === 0" class="empty-state">Aucune partie en cours sauvegardée.</div>
