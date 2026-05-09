@@ -57,15 +57,16 @@ const creatingQuickDemo = ref(false)
 
 function buildQuickDemoBoard() {
   const b = Array.from({ length: 10 }, () => Array(10).fill(null))
-  // Noir (IA) : 3 pions
-  b[2][2] = { color: 'black', isDraught: false }
-  b[2][6] = { color: 'black', isDraught: false }
-  b[4][4] = { color: 'black', isDraught: false }
-  // Blanc (joueur) : 3 pions — prise double immédiate disponible dès le 1er coup
-  // (5,3) peut prendre (4,4) → atterrit (3,5) → peut enchaîner (2,6) → (1,7)
-  b[5][3] = { color: 'white', isDraught: false }
-  b[5][7] = { color: 'white', isDraught: false }
-  b[7][5] = { color: 'white', isDraught: false }
+  // Toutes les cases jouables ont (row+col) impair (cases "light" #b0b0b0)
+  // Noir (IA) : 3 pions — b[4][3] sur le chemin de la prise double
+  b[2][1] = { color: 'black', isDraught: false }  // 2+1=3 ✓
+  b[2][5] = { color: 'black', isDraught: false }  // 2+5=7 ✓ — cible 2e prise
+  b[4][3] = { color: 'black', isDraught: false }  // 4+3=7 ✓ — cible 1re prise
+  // Blanc (joueur) : 3 pions — prise double immédiate
+  // (5,2) prend (4,3)→atterrit (3,4) → prend (2,5)→atterrit (1,6)
+  b[5][2] = { color: 'white', isDraught: false }  // 5+2=7 ✓
+  b[5][6] = { color: 'white', isDraught: false }  // 5+6=11 ✓
+  b[7][4] = { color: 'white', isDraught: false }  // 7+4=11 ✓
   return b
 }
 
